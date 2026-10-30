@@ -46,12 +46,13 @@ export const LAMPS = [[368, 132], [572, 150], [808, 132], [318, 648], [843, 648]
 export const TANK = { x0: 398, y0: 716, x1: 462, y1: 752 };   // procedural aquarium (hallway nook)
 export const CAGE = { x: 604, y: 742 };                       // procedural bird cage (hallway nook)
 export const PETS = [
-  { id: 'cat', img: 'art/cat.png', x: 470, y: 552, w: 40, kind: 'cat', name: 'كوكي' },
-  { id: 'dog', img: 'art/dog.png', x: 262, y: 545, w: 58, kind: 'dog', name: 'بندق' },
+  { id: 'cat', img: 'art/cat.webp', x: 470, y: 552, w: 40, kind: 'cat', name: 'كوكي' },
+  { id: 'dog', img: 'art/dog.webp', x: 262, y: 545, w: 58, kind: 'dog', name: 'بندق' },
 ];
 const lights = (x0, x1, y, step = 17) => Array.from({ length: Math.floor((x1 - x0) / step) + 1 }, (_, i) => [x0 + i * step, y + Math.sin((i / ((x1 - x0) / step)) * Math.PI) * 5]);
 export const LIGHTS = [...lights(185, 395, 88), ...lights(480, 625, 88), ...lights(715, 860, 88), ...lights(752, 892, 322), ...lights(212, 360, 606), ...lights(742, 886, 606)];
 
 export const SIT_H = 112;   // world height of a desk+cat sprite
 export const STAND_H = 88;  // world height of a standing cat
+export const OWNER_H = 132; // the owner (human) in the overview
 export const depthScale = y => 0.94 + 0.1 * Math.min(1, Math.max(0, y / 1024));

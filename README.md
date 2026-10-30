@@ -168,3 +168,18 @@ flutter build apk --release --split-per-abi --target-platform android-arm64
 # الناتج: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk (~22MB)
 ```
 ملاحظة: نسخة الـ release حالياً موقّعة بمفتاح الـ debug (للتجربة فقط). للنشر بالمتجر لازم مفتاح release خاص.
+
+## الوضع الافتراضي: داخل البيت (منظور الشخص الأول)
+- التطبيق يفتح داخل البيت: تمشي بـ WASD (أو ص س ش ي) / عصا التحكم بالموبايل، وتدوّر النظر بالسحب. Shift للركض.
+- الأبواب تنفتح لما تقرب منها أو تضغط عليها (أو E). اضغط على قطة حتى تحجي وياها.
+- زر «من فوق» أو مفتاح V يبدّل للعرض العلوي الكامل، ونفس الحالة تبقى. الضغط على غرفة بالعرض العلوي يدخلك إليها.
+- `?view=overview` يفتح على العرض العلوي، `?room=r2` يدخلك لغرفة معيّنة، `?nogreet` يوقف الترحيب.
+
+## تطبيق ديسكتوب (Electron)
+```bash
+npm install
+npm run desktop          # تشغيل محلي
+npm run desktop:win      # Windows x64 portable -> desktop-dist/CatsOffice-win32-x64.zip
+npm run desktop:linux    # Linux x64 -> desktop-dist/CatsOffice-linux-x64.tar.gz
+```
+- عنوان الـ API: ضع ملف `config.js` جنب `CatsOffice.exe` (أو بمجلد بيانات المستخدم) بنفس صيغة `public/config.js`، والتطبيق يستخدمه بدل الملف المدمج.

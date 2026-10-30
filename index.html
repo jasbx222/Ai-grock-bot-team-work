@@ -11,7 +11,7 @@
   <title>بيت القطط الدافئ</title>
 </head>
 <body>
-  <main id="stage"><canvas id="scene"></canvas><div id="labels"></div></main>
+  <main id="stage"><canvas id="scene"></canvas><canvas id="scene3d"></canvas><div id="labels"></div><div id="roomHud" hidden></div><div id="crosshair" hidden></div></main>
 
   <header id="topbar">
     <div class="bar">
@@ -37,11 +37,12 @@
       <button id="roomsBtn" class="on">🏠 كل واحد بغرفته</button>
       <button id="gatherBtn">☕ اجتماعهم</button>
     </div>
+    <button id="viewBtn" class="btn icon" title="تبديل العرض (V)" aria-label="تبديل العرض">🗺<span class="lbl"> من فوق</span></button>
     <button id="modeBtn" class="btn icon" title="وضع المشي" aria-label="وضع المشي">🚶<span class="lbl"> مشي</span></button>
     <button id="resetBtn" class="btn icon" title="البيت كله" aria-label="البيت كله">⌂<span class="lbl"> البيت كله</span></button>
   </div>
   <div id="joystick" hidden><div class="knob"></div></div>
-  <div id="walkHelp" hidden><span>امشِ بالجويستيك أو W A S D · اضغط اسم بالقائمة حتى تروح يمّه</span><button aria-label="إخفاء">✕</button></div>
+  <div id="walkHelp" hidden><span id="walkHelpTxt">امشِ بالجويستيك أو W A S D · اسحب حتى تلتفت · اضغط على قطّة حتى تحجي وياها · V للعرض من فوق</span><button aria-label="إخفاء">✕</button></div>
   <button id="talkPrompt" hidden></button>
 
   <aside id="chat" aria-label="المحادثة">

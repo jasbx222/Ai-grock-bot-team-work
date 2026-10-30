@@ -151,3 +151,20 @@ body.sheet-open .team-head .chev { transform: rotate(180deg); }
 .tag[hidden], [hidden] { display: none !important; }
 .tag .card b .an { font-weight: 500; font-size: 11px; color: var(--brown2); } .tag.small .card b .an { display: none; }
 .tag.small.problem .card { border: 2px solid #d9443a; box-shadow: 0 0 10px rgba(217,68,58,.7); }
+
+/* ---------- clarity + first-person inside view */
+.tag .card b { font-size: 14px; font-weight: 800; letter-spacing: .1px; text-rendering: optimizeLegibility; }
+.tag .card small { font-size: 11.5px; font-weight: 600; }
+.tag .bubble { font-size: 12.5px; font-weight: 600; }
+.tag.small .card b { font-size: 12.5px; }
+.roomtag { font-size: 12.5px; font-weight: 800; padding: 3px 10px; text-shadow: 0 1px 1px rgba(0,0,0,.35); }
+.roomtag.tiny { font-size: 11px; }
+#scene3d { position: absolute; inset: 0; width: 100%; height: 100%; display: none; touch-action: none; cursor: grab; }
+#scene3d:active { cursor: grabbing; }
+body.inside #labels .tag { transition: opacity .2s; }
+#roomHud { position: fixed; z-index: 6; left: 50%; top: calc(var(--sat, 0px) + 70px); transform: translateX(-50%); pointer-events: none; background: rgba(42,28,20,.78); color: #fff5e6; font-weight: 800; font-size: 15px; padding: 5px 16px; border-radius: 99px; box-shadow: 0 4px 14px rgba(0,0,0,.4); white-space: nowrap; }
+#roomHud.pop { animation: hudpop .5s ease-out; }
+@keyframes hudpop { from { transform: translateX(-50%) scale(1.25); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
+#crosshair { position: fixed; z-index: 5; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: rgba(255,245,230,.75); box-shadow: 0 0 0 1px rgba(0,0,0,.35); pointer-events: none; }
+body.inside #talkPrompt { top: auto; bottom: calc(var(--sab, 0px) + 150px); }
+@media (min-width: 900px) and (min-height: 561px) { #roomHud { margin-left: -182px; } body.inside #talkPrompt { margin-left: -182px; bottom: 110px; } }

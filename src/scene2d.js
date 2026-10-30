@@ -1,20 +1,22 @@
 // Illustrated 2.5D scene: painted cutaway house + depth-sorted character sprites (Canvas 2D).
-import { WORLD, ROOMS, DOORS, EXTRA_SLOTS, GATHER_RING, OBSTACLES, TEA_SPOT, FIRE, LAMPS, TANK, CAGE, PETS, LIGHTS, SIT_H, STAND_H, depthScale } from './sceneConfig.js';
+import { WORLD, ROOMS, DOORS, EXTRA_SLOTS, GATHER_RING, OBSTACLES, TEA_SPOT, FIRE, LAMPS, TANK, CAGE, PETS, LIGHTS, SIT_H, STAND_H, OWNER_H, depthScale } from './sceneConfig.js';
+import { to3, to2, REGIONS } from './map3d.js';
 
 const imgCache = new Map();
 export function loadImage(src) {
   if (!imgCache.has(src)) imgCache.set(src, new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('img ' + src)); i.src = src; }));
   return imgCache.get(src);
 }
+export const loadImageOr = (src, alt) => (src ? loadImage(src).catch(() => alt) : Promise.resolve(alt));
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const inRect = (x, y, r) => x >= r[0] && x <= r[2] && y >= r[1] && y <= r[3];
 const inEll = (x, y, e, pad = 0) => ((x - e.x) / (e.rx + pad)) ** 2 + ((y - e.y) / (e.ry + pad * 0.6)) ** 2 < 1;
 
 export async function createScene(canvas, { onPick, onRoom, onFrame } = {}) {
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { alpha: false });
   const bg = await loadImage(WORLD.bg);
-  const deskEmpty = await loadImage('art/desk_empty.png');
-  const pets = await Promise.all(PETS.map(async p => ({ ...p, image: await loadImage(p.img) })));
+  const deskEmpty = await loadImage('art/desk_empty.webp');
+  const pets = await Promise.all(PETS.map(async p => ({ ...p, image: await loadImage(p.img), pos: { x: p.x, y: p.y }, home: { x: p.x, y: p.y }, path: [], face: -1, ph: Math.random() * 6, rest: 4 + Math.random() * 6, hop: 0 })));
   const rooms = ROOMS.map(r => ({ ...r, owner: null }));
   const roomById = new Map(rooms.map(r => [r.id, r]));
 
@@ -22,8 +24,9 @@ export async function createScene(canvas, { onPick, onRoom, onFrame } = {}) {
     agents: new Map(), papers: [], notes: [], t: 0, fps: 60, walk: false, gathered: false, view: 'house', roomId: null, tripT: 6,
     cam: { x: 512, y: 470, z: 0.5 }, camT: { x: 512, y: 470, z: 0.5 }, insets: { top: 0, bottom: 0, left: 0, right: 0 },
     avatar: null, keys: new Set(), joy: { x: 0, y: 0 }, focusId: null, hoverId: null,
+    render: true, hearts: [], pets, greet: { active: false, c3: null, cool: 0, room: null, ids: [], roomCool: {} },
   };
-  let vw = 1, vh = 1, dpr = 1, vignette = null;
+  let vw = 1, vh = 1, dpr = 1, vignette = null, bgMip = null, bgMipW = 0;
 
   // ---------- snow (garden around the house) / fish
   const H = WORLD.house;
@@ -53,12 +56,13 @@ export async function createScene(canvas, { onPick, onRoom, onFrame } = {}) {
       let room, slot;
       if (i < priv.length) { room = priv[i]; slot = room.slot; room.owner = ag; }
       else { const e = EXTRA_SLOTS[extra++ % EXTRA_SLOTS.length]; room = roomById.get(e[2]); slot = [e[0] + Math.floor((extra - 1) / EXTRA_SLOTS.length) * 30, e[1]]; }
-      const [sit, idle, walkI] = await Promise.all([loadImage(ag.art.sit), loadImage(ag.art.idle), loadImage(ag.art.walk)]);
+      const [sit, idle] = await Promise.all([loadImage(ag.art.sit), loadImage(ag.art.idle)]);
+      const walk4 = await loadImageOr(ag.art.walk4, null), walkI = walk4 ? null : await loadImageOr(ag.art.walk, idle);
       const s = depthScale(slot[1]);
       const dh = SIT_H * s, dw = dh * sit.width / sit.height;
       const seat = { x: slot[0] + dw * 0.22, y: slot[1] + 4 };
       next.set(ag.id, prev ? Object.assign(prev, { agent: ag, room: room.id }) : {
-        id: ag.id, agent: ag, room: room.id, slot: { x: slot[0], y: slot[1] }, seat, dw, dh, img: { sit, idle, walk: walkI },
+        id: ag.id, agent: ag, room: room.id, slot: { x: slot[0], y: slot[1] }, seat, dw, dh, img: { sit, idle, walk: walkI, walk4 }, dist: 0,
         pos: { ...seat }, mode: 'seated', path: [], face: -1, status: null, ph: Math.random() * 6,
         deskEll: { x: slot[0] - dw * 0.08, y: slot[1] - 10 * s, rx: dw * 0.42, ry: 20 * s },
       });
@@ -103,7 +107,7 @@ export async function createScene(canvas, { onPick, onRoom, onFrame } = {}) {
     return out;
   }
   function gather(on) {
-    S.gathered = on;
+    S.gathered = on; S.greet.active = false; S.greet.ids = [];
     const list = [...S.agents.values()];
     const spots = gatherSpots(list.length);
     list.forEach((a, i) => {
@@ -119,7 +123,7 @@ export async function createScene(canvas, { onPick, onRoom, onFrame } = {}) {
     S.tripT -= dt;
     if (S.tripT <= 0) {
       S.tripT = 14 + Math.random() * 10;
-      const free = [...S.agents.values()].filter(a => a.mode === 'seated' && a.room !== 'kitchen' && !a.trip);
+      const free = [...S.agents.values()].filter(a => a.mode === 'seated' && a.room !== 'kitchen' && !a.trip && !S.greet.ids.includes(a.id));
       const pref = free.filter(a => a.status?.status === 'waiting' || a.status?.status === 'done');
       const a = (pref.length ? pref : free)[Math.floor(Math.random() * (pref.length ? pref.length : free.length))];
       if (a) { const sp = { x: TEA_SPOT.x + (Math.random() - 0.5) * 30, y: TEA_SPOT.y + (Math.random() - 0.5) * 30 }; a.trip = { back: 0 }; a.mode = 'walking'; a.path = route(a.pos, sp); a.after = 'standing'; a.delay = 0; }
@@ -128,13 +132,70 @@ export async function createScene(canvas, { onPick, onRoom, onFrame } = {}) {
   }
 
   // ---------- walking avatar (you)
-  async function setAvatar(art) { const [idle, walkI] = await Promise.all([loadImage(art.idle), loadImage(art.walk)]); S.avatar = { pos: { x: 512, y: 760 }, img: { idle, walk: walkI }, mode: 'standing', face: -1, path: [], ph: 0, isYou: true }; }
-  function setWalk(on) { S.walk = on; if (on && S.avatar) { S.avatar.pos = { x: 512, y: 760 }; S.avatar.path = []; } fit(on ? 'walk' : 'house'); }
+  async function setAvatar(art) { const [idle, walk4] = await Promise.all([loadImage(art.idle), loadImageOr(art.walk4, null)]); S.avatar = { pos: { x: 512, y: 760 }, img: { idle, walk4 }, mode: 'standing', face: 1, path: [], ph: 0, dist: 0, isYou: true, look3: { x: 0, z: -1 }, h: OWNER_H }; }
+  function setWalk(on) { S.walk = on; if (on && S.avatar) S.avatar.path = []; fit(on ? 'walk' : 'house'); }
+
+  // ---------- the owner: cats run to him, rub his legs, purr (hearts), then settle around him
+  const OW = () => S.avatar;
+  function freeSpot3(c, x, z) {
+    // keep a 3D spot inside the owner's room interior, else pull it toward him
+    const g = REGIONS.find(g => c.x >= g.R[0] && c.x <= g.R[2] && c.z >= g.R[1] && c.z <= g.R[3]) || REGIONS.find(g => g.id === 'hall');
+    for (let k = 1; k >= 0.2; k -= 0.2) { const px = c.x + (x - c.x) * k, pz = c.z + (z - c.z) * k; if (px > g.R[0] + 0.35 && px < g.R[2] - 0.35 && pz > g.R[1] + 0.35 && pz < g.R[3] - 0.35) { const p = to2(px, pz); if (walkable(p.x, p.y)) return p; } }
+    return null;
+  }
+  function spotsAround(n, radius, spread, rowGap) {
+    const av = OW(), c = to3(av.pos.x, av.pos.y), L = av.look3 || { x: 0, z: -1 }, base = Math.atan2(L.z, L.x), out = [];
+    const perRow = Math.max(3, Math.min(6, n));
+    for (let i = 0; i < n; i++) {
+      const row = Math.floor(i / perRow), k = i % perRow, cnt = Math.min(perRow, n - row * perRow), r = radius + row * rowGap;
+      const a = base + (cnt === 1 ? 0 : (k / (cnt - 1) - 0.5) * spread * 2) + (row % 2) * 0.18;
+      out.push(freeSpot3(c, c.x + Math.cos(a) * r, c.z + Math.sin(a) * r) || { x: av.pos.x + (i - n / 2) * 8, y: av.pos.y + 6 });
+    }
+    return out;
+  }
+  function greet(ids, follow = false) {
+    const av = OW(); if (!av) return;
+    const list = (ids || [...S.agents.keys()]).map(id => S.agents.get(id)).filter(Boolean);
+    if (!list.length) return;
+    const G = S.greet; G.active = true; G.ids = list.map(a => a.id); G.c3 = to3(av.pos.x, av.pos.y); G.room = roomAt(av.pos.x, av.pos.y)?.id;
+    const legs = spotsAround(list.length, list.length > 3 ? 0.62 : 0.5, 1.15, 0.4), settle = spotsAround(list.length, 1.95, 1.05, 0.6);
+    list.forEach((a, i) => {
+      a.trip = null; a.settled = false; a.settleSpot = settle[i]; a.delay = follow ? i * 0.12 : 0.1 + i * 0.18;
+      a.mode = 'walking'; a.run = true; a.path = route(a.pos, follow ? settle[i] : legs[i]); a.after = follow ? 'standing' : 'cuddle';
+      if (follow) a.settled = true;
+    });
+  }
+  function endGreet() {
+    const G = S.greet, list = G.ids.map(id => S.agents.get(id)).filter(Boolean); G.active = false; G.ids = [];
+    if (S.gathered) { gather(true); return; }
+    list.forEach((a, i) => { a.settled = false; a.run = false; a.mode = 'walking'; a.path = route(a.pos, a.seat); a.after = 'seated'; a.delay = 0.4 + i * 0.3; });
+  }
+  function owner(dt) {
+    const av = OW(), G = S.greet; if (!av) return;
+    G.cool -= dt; for (const k in G.roomCool) G.roomCool[k] -= dt;
+    const room = roomAt(av.pos.x, av.pos.y)?.id;
+    if (room && room !== S.ownerRoom) {
+      const prev = S.ownerRoom; S.ownerRoom = room;
+      if (prev !== undefined) {
+        const r = roomById.get(room);
+        if (r.kind === 'shared' && G.cool <= 0 && !(G.active && S.gathered)) { G.cool = 40; greet(null); }
+        else if (r.kind === 'private' && r.owner && !(G.roomCool[room] > 0)) { const a = S.agents.get(r.owner.id); if (a && (!S.gathered || a.mode === 'seated' || !G.ids.includes(a.id))) { G.roomCool[room] = 25; if (G.active && !S.gathered) endGreet(); if (!G.active || !S.gathered) greet([a.id]); } }
+      }
+    }
+    if (!G.active) return;
+    // «كل واحد بغرفته»: after the welcome (run, rub, purr, settle) they go back to work
+    if (!S.gathered) { const list = G.ids.map(id => S.agents.get(id)).filter(Boolean); G.settleT = list.every(a => a.settled && a.mode === 'standing') ? (G.settleT || 0) + dt : 0; if (G.settleT > 7) { G.settleT = 0; endGreet(); return; } }
+    const c = to3(av.pos.x, av.pos.y), moved = Math.hypot(c.x - G.c3.x, c.z - G.c3.z);
+    if (moved > 2.2) { if (S.gathered) greet(G.ids, true); else endGreet(); }
+  }
+  function heart(x, y, big) { if (S.hearts.length < 40) S.hearts.push({ x: x + (Math.random() - 0.5) * 14, y, t: 0, s: big ? 1.3 : 0.8 + Math.random() * 0.4, h0: 0.75 + Math.random() * 0.25 }); }
+  function setOwnerPos(p, moving, look3, faceX) { const av = OW(); if (!av) return; if (moving) av.dist += Math.hypot(p.x - av.pos.x, p.y - av.pos.y); av.pos = p; av.mode = moving ? 'walking' : 'standing'; if (look3) av.look3 = look3; if (faceX) av.face = faceX > 0 ? 1 : -1; }
   function walkTo(id) { const a = S.agents.get(id); if (!a || !S.avatar) return; const p = { x: Math.min(a.slot.x + a.dw * 0.55 + 8, roomById.get(a.room).floor[0][2] - 4), y: a.slot.y - 4 }; S.avatar.path = route(S.avatar.pos, p); S.avatar.mode = 'walking'; S.avatar.auto = true; S.avatar.after = 'standing'; }
 
   // ---------- camera
   function resize() {
-    dpr = Math.min(devicePixelRatio || 1, 2); const r = canvas.getBoundingClientRect(); vw = r.width; vh = r.height;
+    const r = canvas.getBoundingClientRect(); vw = r.width; vh = r.height;
+    dpr = Math.min(devicePixelRatio || 1, vw * vh > 700000 ? 1.5 : 2); bgMip = null;
     canvas.width = Math.round(vw * dpr); canvas.height = Math.round(vh * dpr);
     vignette = document.createElement('canvas'); vignette.width = 256; vignette.height = 256; const g = vignette.getContext('2d');
     const gr = g.createRadialGradient(128, 128, 60, 128, 128, 182); gr.addColorStop(0, 'rgba(10,14,30,0)'); gr.addColorStop(1, 'rgba(8,10,24,0.55)'); g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
@@ -182,8 +243,13 @@ export async function createScene(canvas, { onPick, onRoom, onFrame } = {}) {
 
   function spriteBox(a) {
     if (a.mode === 'seated') return { x: a.slot.x - a.dw / 2, y: a.slot.y - a.dh, w: a.dw, h: a.dh };
-    const s = depthScale(a.pos.y), img = a.mode === 'walking' ? a.img.walk : a.img.idle, h = STAND_H * s, w = h * img.width / img.height;
+    const s = depthScale(a.pos.y), im = frameOf(a), h = (a.h || STAND_H) * s, w = h * im.w / im.img.height;
     return { x: a.pos.x - w / 2, y: a.pos.y - h, w, h };
+  }
+  // current sprite frame: 4-frame walk sheet stepped by distance travelled (feet don't slide)
+  function frameOf(m) {
+    if (m.mode === 'walking' && m.img.walk4) { const W = m.img.walk4.width / 4, f = Math.floor((m.dist || 0) / 11) % 4; return { img: m.img.walk4, sx: f * W, w: W, flip: m.face < 0, f }; }
+    const img = m.mode === 'walking' && m.img.walk ? m.img.walk : m.img.idle; return { img, sx: 0, w: img.width, flip: m.face > 0, f: 0 };
   }
   function pick(x, y) {
     const list = [...S.agents.values()].sort((a, b) => b.pos.y - a.pos.y);
@@ -198,16 +264,24 @@ export async function createScene(canvas, { onPick, onRoom, onFrame } = {}) {
   // ---------- update
   function stepMover(m, dt, speed) {
     if (m.delay > 0) { m.delay -= dt; return; }
-    const tgt = m.path[0]; if (!tgt) { if (m.mode === 'walking') { m.mode = m.after || 'standing'; if (m.mode === 'seated') m.pos = { ...m.seat }; if (m.mode === 'standing' && !m.isYou) m.face = S.gathered ? (m.pos.x < GATHER_RING.x ? 1 : -1) : m.face; } return; }
-    const dx = tgt.x - m.pos.x, dy = tgt.y - m.pos.y, d = Math.hypot(dx, dy), st = speed * dt * depthScale(m.pos.y);
+    const tgt = m.path[0]; if (!tgt) { if (m.mode === 'walking') { m.mode = m.after || 'standing'; m.run = false; m.ct = 0; if (m.mode === 'seated') m.pos = { ...m.seat }; if (m.mode === 'cuddle' || m.settled) { const o = OW(); if (o) m.face = o.pos.x > m.pos.x ? 1 : -1; } if (m.mode === 'standing' && !m.isYou) m.face = S.gathered ? (m.pos.x < GATHER_RING.x ? 1 : -1) : m.face; } return; }
+    const dx = tgt.x - m.pos.x, dy = tgt.y - m.pos.y, d = Math.hypot(dx, dy), st = (m.run ? speed * 1.7 : speed) * dt * depthScale(m.pos.y);
+    m.dist = (m.dist || 0) + Math.min(d, st);
     if (Math.abs(dx) > 1) m.face = dx > 0 ? 1 : -1;
     if (d <= st) { m.pos = { x: tgt.x, y: tgt.y }; m.path.shift(); } else { m.pos.x += (dx / d) * st; m.pos.y += (dy / d) * st; }
     m.ph += dt * 9;
   }
   function update(dt) {
     S.t += dt;
-    for (const a of S.agents.values()) { if (a.mode === 'walking') stepMover(a, dt, 110); }
-    ambient(dt);
+    for (const a of S.agents.values()) {
+      if (a.mode === 'walking') stepMover(a, dt, 110);
+      else if (a.mode === 'cuddle') {
+        a.ct += dt; if (Math.random() < dt * 2.2) heart(a.pos.x, a.pos.y, true);
+        if (a.ct > 3.4 + (a.ph % 1.2)) { a.mode = 'walking'; a.settled = true; a.path = a.settleSpot ? route(a.pos, a.settleSpot) : []; a.after = 'standing'; a.delay = 0; }
+      } else if (a.settled && a.mode === 'standing' && Math.random() < dt * 0.25) heart(a.pos.x, a.pos.y, false);
+    }
+    ambient(dt); owner(dt); petsStep(dt);
+    for (let i = S.hearts.length - 1; i >= 0; i--) { const h = S.hearts[i]; h.t += dt; if (h.t > 2.2) S.hearts.splice(i, 1); }
     const av = S.avatar;
     if (S.walk && av) {
       let ix = S.joy.x, iy = S.joy.y; const k = S.keys;
@@ -218,7 +292,7 @@ export async function createScene(canvas, { onPick, onRoom, onFrame } = {}) {
         av.auto = false; av.path = [];
         const sp = (k.has('shift') ? 160 : 95) * Math.min(1, mag) * depthScale(av.pos.y) * dt, nx = av.pos.x + (ix / mag) * sp, ny = av.pos.y + (iy / mag) * sp * 0.8;
         if (walkable(nx, ny)) { av.pos.x = nx; av.pos.y = ny; } else if (walkable(nx, av.pos.y)) av.pos.x = nx; else if (walkable(av.pos.x, ny)) av.pos.y = ny;
-        if (Math.abs(ix) > 0.1) av.face = ix > 0 ? 1 : -1; av.mode = 'walking'; av.ph += dt * 9;
+        if (Math.abs(ix) > 0.1) av.face = ix > 0 ? 1 : -1; av.mode = 'walking'; av.ph += dt * 9; av.dist += sp; av.look3 = { x: ix / mag, z: iy / mag };
       } else if (av.auto) stepMover(av, dt, 130); else av.mode = 'standing';
       const z = S.camT.z, I = S.insets; S.camT.x = av.pos.x - (I.left - I.right) / 2 / z; S.camT.y = av.pos.y - 45 - (I.top - I.bottom) / 2 / z;
     }
@@ -231,8 +305,44 @@ export async function createScene(canvas, { onPick, onRoom, onFrame } = {}) {
     for (let i = S.papers.length - 1; i >= 0; i--) { const p = S.papers[i]; p.t += dt / p.dur; if (p.t >= 1) S.papers.splice(i, 1); }
   }
 
+  // ---------- pets: the dog trots around the kitchen / hall and comes to say hi
+  const DOG_SPOTS = [[262, 545], [300, 470], [230, 430], [250, 520], [372, 470], [300, 560]];
+  function petsStep(dt) {
+    const av = OW();
+    for (const p of pets) {
+      p.hop = Math.max(0, p.hop - dt);
+      if (p.kind !== 'dog') continue;
+      const near = av && Math.hypot(av.pos.x - p.pos.x, av.pos.y - p.pos.y) < 150 && S.greet.active;
+      if (p.path.length) {
+        const t = p.path[0], dx = t.x - p.pos.x, dy = t.y - p.pos.y, d = Math.hypot(dx, dy), st = (near ? 120 : 70) * dt;
+        if (Math.abs(dx) > 1) p.face = dx > 0 ? 1 : -1; p.ph += dt * 12;
+        if (d <= st) { p.pos = { ...t }; p.path.shift(); if (!p.path.length) { p.rest = 3 + Math.random() * 7; if (near) { p.hop = 2.5; heart(p.pos.x, p.pos.y - 6, true); } } } else { p.pos.x += dx / d * st; p.pos.y += dy / d * st; }
+      } else if ((p.rest -= dt) <= 0) {
+        if (near) { const o = { x: av.pos.x + (p.pos.x < av.pos.x ? -26 : 26), y: av.pos.y + 4 }; p.path = walkable(o.x, o.y) ? route(p.pos, o) : []; p.rest = 2; }
+        else { const s = DOG_SPOTS[Math.floor(Math.random() * DOG_SPOTS.length)]; p.path = route(p.pos, { x: s[0], y: s[1] }); }
+      }
+    }
+  }
+
   // ---------- draw helpers
-  function drawGlow(x, y, r, color, a) { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, color.replace('A', a)); g.addColorStop(1, color.replace('A', 0)); ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); }
+  // glows are pre-rendered once per colour (no per-frame gradients)
+  const glowCache = new Map();
+  function glowSprite(color) {
+    let c = glowCache.get(color); if (c) return c;
+    c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gr.addColorStop(0, color.replace('A', 1)); gr.addColorStop(0.45, color.replace('A', 0.45)); gr.addColorStop(1, color.replace('A', 0)); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+    glowCache.set(color, c); return c;
+  }
+  function drawGlow(x, y, r, color, a) { if (a <= 0.003) return; ctx.globalAlpha = Math.min(1, a); ctx.drawImage(glowSprite(color), x - r, y - r, r * 2, r * 2); ctx.globalAlpha = 1; }
+  // offline cats: a grey copy made once instead of ctx.filter every frame
+  const grayCache = new WeakMap();
+  function gray(img) {
+    let c = grayCache.get(img); if (c) return c;
+    c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const g = c.getContext('2d'); g.filter = 'grayscale(0.8) brightness(0.7)'; g.drawImage(img, 0, 0); grayCache.set(img, c); return c;
+  }
+  function drawFrame(fr, x, y, w, h, sy = 1, imgMap) {
+    ctx.save(); ctx.translate(x, y); if (fr.flip) ctx.scale(-1, 1); ctx.scale(1, sy); ctx.drawImage(imgMap ? imgMap(fr.img) : fr.img, fr.sx, 0, fr.w, fr.img.height, -w / 2, -h, w, h); ctx.restore();
+  }
   function drawSprite(img, x, y, w, h, flip, sy = 1) {
     ctx.save(); ctx.translate(x, y); if (flip) ctx.scale(-1, 1); ctx.scale(1, sy); ctx.drawImage(img, -w / 2, -h, w, h); ctx.restore();
   }
@@ -240,34 +350,36 @@ export async function createScene(canvas, { onPick, onRoom, onFrame } = {}) {
 
   function drawAgent(a) {
     const st = a.status?.status || 'offline', t = S.t;
-    if (st === 'offline') ctx.filter = 'grayscale(0.8) brightness(0.7)';
+    const G = st === 'offline' ? gray : null;
     if (a.mode === 'seated') {
       if (st === 'problem') { ctx.globalCompositeOperation = 'lighter'; drawGlow(a.slot.x, a.slot.y - a.dh * 0.25, a.dw * 0.75, 'rgba(255,40,30,A)', 0.22 + 0.16 * Math.sin(t * 5)); ctx.globalCompositeOperation = 'source-over'; }
       drawShadow(a.slot.x, a.slot.y - 4, a.dw * 0.5);
       const typing = st === 'working', breathe = 1 + Math.sin(t * (typing ? 2.4 : 1.4) + a.ph) * (typing ? 0.008 : 0.006);
-      drawSprite(a.img.sit, a.slot.x, a.slot.y, a.dw, a.dh, false, breathe);
+      drawSprite(G ? G(a.img.sit) : a.img.sit, a.slot.x, a.slot.y, a.dw, a.dh, false, breathe);
       if (typing) { ctx.globalCompositeOperation = 'lighter'; drawGlow(a.slot.x - a.dw * 0.2, a.slot.y - a.dh * 0.55, a.dw * 0.35, 'rgba(120,170,255,A)', 0.14 + 0.06 * Math.sin(t * 13 + a.ph)); ctx.globalCompositeOperation = 'source-over'; }
     } else {
       const s = depthScale(a.slot.y); drawShadow(a.slot.x, a.slot.y - 4, a.dw * 0.5);
       drawSprite(deskEmpty, a.slot.x, a.slot.y, a.dh * deskEmpty.width / deskEmpty.height * 0.98, a.dh * 0.98, false);
       void s;
     }
-    ctx.filter = 'none';
   }
   function drawMover(m) {
-    const s = depthScale(m.pos.y), walking = m.mode === 'walking', img = walking ? m.img.walk : m.img.idle, h = STAND_H * s, w = h * img.width / img.height;
-    const bob = walking ? -Math.abs(Math.sin(m.ph)) * 3.2 * s : 0, br = walking ? 1 : 1 + Math.sin(S.t * 1.6 + (m.ph || 0)) * 0.007;
-    drawShadow(m.pos.x, m.pos.y, w * 0.42);
-    ctx.save(); ctx.translate(m.pos.x, m.pos.y + bob); if (walking) ctx.rotate(Math.sin(m.ph) * 0.03);
-    drawSprite(img, 0, 0, w, h, m.face > 0, br); ctx.restore();
+    const s = depthScale(m.pos.y), walking = m.mode === 'walking', fr = frameOf(m), h = (m.h || STAND_H) * s, w = h * fr.w / fr.img.height;
+    const bob = walking && m.img.walk4 ? -(fr.f % 2 ? 1.6 : 0) * s : walking ? -Math.abs(Math.sin(m.ph)) * 3.2 * s : 0, br = walking ? 1 : 1 + Math.sin(S.t * 1.6 + (m.ph || 0)) * 0.007;
+    const rub = m.mode === 'cuddle' ? Math.sin(S.t * 5 + m.ph) : 0;
+    drawShadow(m.pos.x, m.pos.y, (m.isYou ? w * 0.6 : w * 0.42));
+    ctx.save(); ctx.translate(m.pos.x + rub * 3, m.pos.y + bob); ctx.rotate(rub * 0.07);
+    drawFrame(fr, 0, 0, w, h, br, m.status?.status === 'offline' ? gray : null); ctx.restore();
     if (m.isYou) { ctx.save(); ctx.strokeStyle = 'rgba(79,170,165,0.9)'; ctx.lineWidth = 2.5 / S.cam.z * 1.6; ctx.beginPath(); ctx.ellipse(m.pos.x, m.pos.y, w * 0.5, w * 0.17, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
   }
   function drawPet(p) {
     const h = p.w * p.image.height / p.image.width, br = p.kind === 'cat' ? 1 + Math.sin(S.t * 1.8) * 0.025 : 1 + Math.sin(S.t * 3.2) * 0.02;
-    drawShadow(p.x, p.y - 2, p.w * 0.45);
-    ctx.save(); ctx.translate(p.x, p.y); if (p.kind === 'dog') ctx.rotate(Math.sin(S.t * 0.7) * 0.012); drawSprite(p.image, 0, 0, p.w, h, false, br); ctx.restore();
+    const moving = p.path.length > 0, hop = moving ? -Math.abs(Math.sin(p.ph)) * 3 : p.hop > 0 ? -Math.abs(Math.sin(S.t * 10)) * 5 : 0;
+    drawShadow(p.pos.x, p.pos.y - 2, p.w * 0.45);
+    ctx.save(); ctx.translate(p.pos.x, p.pos.y + hop); if (p.kind === 'dog') ctx.rotate(moving ? Math.sin(p.ph) * 0.05 : Math.sin(S.t * 0.7) * 0.012); drawSprite(p.image, 0, 0, p.w, h, p.face > 0, br); ctx.restore();
   }
 
+  function drawHeart(x, y, r) { ctx.fillStyle = '#ff6b8b'; ctx.beginPath(); ctx.moveTo(x, y + r * 0.9); ctx.bezierCurveTo(x - r * 1.6, y - r * 0.2, x - r * 0.7, y - r * 1.4, x, y - r * 0.5); ctx.bezierCurveTo(x + r * 0.7, y - r * 1.4, x + r * 1.6, y - r * 0.2, x, y + r * 0.9); ctx.fill(); }
   function drawTank(t) {
     const T = TANK, w = T.x1 - T.x0, h = T.y1 - T.y0;
     ctx.save();
@@ -301,11 +413,14 @@ export async function createScene(canvas, { onPick, onRoom, onFrame } = {}) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = WORLD.bgColor; ctx.fillRect(0, 0, vw, vh);
     ctx.setTransform(dpr * z, 0, 0, dpr * z, dpr * (vw / 2 - S.cam.x * z), dpr * (vh / 2 - S.cam.y * z));
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(bg, 0, 0, WORLD.w, WORLD.h);
+    // background pre-scaled close to on-screen size (big minifying drawImage every frame was the main cost)
+    const need = Math.min(2048, Math.ceil(WORLD.w * z * dpr / 256) * 256);
+    if (!bgMip || Math.abs(need - bgMipW) > 255) { bgMipW = need; if (need >= 1792) bgMip = bg; else { bgMip = document.createElement('canvas'); bgMip.width = bgMip.height = need; const g = bgMip.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(bg, 0, 0, need, need); } }
+    ctx.drawImage(bgMip, 0, 0, WORLD.w, WORLD.h);
     const t = S.t;
     // snow falling on the garden (skipped over the roofless house)
     ctx.fillStyle = 'rgba(235,242,255,0.8)';
-    for (const f of snow) { if (f.x > H[0] && f.x < H[2] && f.y > H[1] && f.y < H[3]) continue; ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, 6.283); ctx.fill(); }
+    ctx.beginPath(); for (const f of snow) { if (f.x > H[0] && f.x < H[2] && f.y > H[1] && f.y < H[3]) continue; ctx.moveTo(f.x + f.r, f.y); ctx.arc(f.x, f.y, f.r, 0, 6.283); } ctx.fill();
     drawTank(t); drawCage(t);
     // warm light: fire + lamps
     ctx.globalCompositeOperation = 'lighter';
@@ -316,8 +431,8 @@ export async function createScene(canvas, { onPick, onRoom, onFrame } = {}) {
     // depth-sorted things
     const items = [];
     for (const a of S.agents.values()) { items.push({ y: a.slot.y, d: () => drawAgent(a) }); if (a.mode !== 'seated') items.push({ y: a.pos.y, d: () => drawMover(a) }); }
-    for (const p of pets) items.push({ y: p.y, d: () => drawPet(p) });
-    if (S.walk && S.avatar) items.push({ y: S.avatar.pos.y, d: () => drawMover(S.avatar) });
+    for (const p of pets) items.push({ y: p.pos.y, d: () => drawPet(p) });
+    if (S.avatar) items.push({ y: S.avatar.pos.y, d: () => drawMover(S.avatar) });
     items.sort((a, b) => a.y - b.y).forEach(i => i.d());
     // string lights twinkle
     ctx.globalCompositeOperation = 'lighter';
@@ -326,6 +441,8 @@ export async function createScene(canvas, { onPick, onRoom, onFrame } = {}) {
     // floating notes (bird / sleepy cat)
     ctx.textAlign = 'center';
     for (const n of S.notes) { const a = Math.min(1, n.t * 2) * (1 - n.t / 2.6); ctx.globalAlpha = a; ctx.fillStyle = n.kind === 'bird' ? '#ffe2a8' : '#f6ead8'; ctx.font = `${n.kind === 'bird' ? 13 : 11 + n.t * 3}px sans-serif`; ctx.fillText(n.ch, n.x + Math.sin(n.t * 3) * 5, n.y - n.t * 16); }
+    // hearts (cats purring at the owner)
+    for (const h of S.hearts) { const a = Math.min(1, h.t * 3) * (1 - h.t / 2.2); ctx.globalAlpha = a; drawHeart(h.x + Math.sin(h.t * 4 + h.s * 9) * 4, h.y - 70 * h.h0 - h.t * 22, 5.5 * h.s); }
     ctx.globalAlpha = 1;
     // papers
     for (const p of S.papers) {
@@ -344,10 +461,10 @@ export async function createScene(canvas, { onPick, onRoom, onFrame } = {}) {
   function loop(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now; acc += dt; frames++;
     if (acc >= 1) { S.fps = frames / acc; acc = 0; frames = 0; }
-    update(dt); draw(); onFrame?.(S); requestAnimationFrame(loop);
+    update(dt); if (S.render) draw(); onFrame?.(S, dt); requestAnimationFrame(loop);
   }
   resize();
   requestAnimationFrame(loop);
 
-  return { S, rooms, roomAt, setAgents, setAvatar, setWalk, walkTo, gather, fit, focus, focusRoom, toScreen, spriteBox, headPoint, sendPaper, resize, setInsets: i => { S.insets = i; }, setStatus: (id, st) => { const a = S.agents.get(id); if (a) a.status = st; } };
+  return { S, rooms, roomAt, walkable, route, greet, setOwnerPos, frameOf, setAgents, setAvatar, setWalk, walkTo, gather, fit, focus, focusRoom, toScreen, spriteBox, headPoint, sendPaper, resize, setInsets: i => { S.insets = i; }, setStatus: (id, st) => { const a = S.agents.get(id); if (a) a.status = st; } };
 }

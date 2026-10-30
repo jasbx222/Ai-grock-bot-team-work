@@ -31,3 +31,8 @@ key.properties
 .idea/
 .vscode/
 __pycache__/
+
+# desktop app build output
+desktop-dist/
+desktop/node_modules/
+desktop/app/

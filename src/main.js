@@ -1,6 +1,6 @@
 import './style.css';
 import { CONFIG, isLive } from './config.js';
-import { STATUS_LABELS, loadAgents, normalizeAgent, artPaths, GENERIC_ART } from './agents.js';
+import { STATUS_LABELS, loadAgents, normalizeAgent, OWNER } from './agents.js';
 import { createScene } from './scene2d.js';
 import { createChatPanel } from './chatPanel.js';
 import { startStatusFeed, fetchStatus } from './statusFeed.js';
@@ -23,12 +23,35 @@ async function boot() {
   let ready = false;
   const scene = await createScene($('scene'), {
     onPick: id => openChat(id),
-    onRoom: r => { if (scene.S.view === 'room' && scene.S.roomId === r.id) scene.fit('house'); else scene.focusRoom(r.id); },
-    onFrame: S => ready && onFrame(S),
+    onRoom: r => { if (inside) { inside.enterRoom(r.id); setView('inside'); } else if (scene.S.view === 'room' && scene.S.roomId === r.id) scene.fit('house'); else scene.focusRoom(r.id); },
+    onFrame: (S, dt) => ready && onFrame(S, dt),
   });
   await scene.setAgents(agents);
-  const usedArt = new Set(agents.map(a => a.art.key));
-  await scene.setAvatar(artPaths(GENERIC_ART.find(k => !usedArt.has(k)) || 'generic2'));
+  await scene.setAvatar(OWNER.art); // the owner is a human (not a cat, not part of agents.json)
+
+  // ---------- first-person "inside" view (default) + top-down overview; both show the same live simulation
+  let inside = null, view = 'overview';
+  const coarse = matchMedia('(pointer: coarse)').matches;
+  try {
+    const { createInside } = await import('./inside3d.js');
+    inside = await createInside($('scene3d'), scene, {
+      onPick: id => openChat(id),
+      onRoomChange: id => { const r = scene.rooms.find(q => q.id === id); const hud = $('roomHud'); hud.textContent = r ? (r.kind === 'private' ? (r.owner ? `🛏 غرفة ${r.owner.person}` : '🛏 غرفة فارغة') : r.name) : ''; hud.classList.remove('pop'); void hud.offsetWidth; hud.classList.add('pop'); },
+    });
+  } catch (e) { console.warn('3D view unavailable, staying in the overview', e); }
+  function setView(v) {
+    if (!inside) v = 'overview';
+    if (v === 'inside' && view !== 'inside' && scene.S.avatar) { if (scene.S.walk) setWalk(false); inside.placeAt2D(scene.S.avatar.pos.x, scene.S.avatar.pos.y); }
+    view = v; const ins = v === 'inside';
+    scene.S.render = !ins; $('scene').style.display = ins ? 'none' : 'block'; inside?.setVisible(ins);
+    document.body.classList.toggle('inside', ins);
+    $('roomHud').hidden = !ins; $('crosshair').hidden = !ins || coarse;
+    $('viewBtn').innerHTML = ins ? '🗺<span class="lbl"> من فوق</span>' : '🚪<span class="lbl"> داخل البيت</span>';
+    $('viewBtn').title = ins ? 'العرض من فوق (V)' : 'ادخل البيت (V)';
+    $('modeBtn').hidden = ins; $('joystick').hidden = ins ? !coarse : !scene.S.walk;
+    if (!ins) { scene.resize(); refit(true); }
+    showHelp(ins);
+  }
 
   // ---------- layout: insets so the camera frames the house in the free area
   const mqSide = matchMedia('(min-width: 900px) and (min-height: 561px)'), mqLand = matchMedia('(orientation: landscape) and (max-height: 560px)');
@@ -40,7 +63,7 @@ async function boot() {
   }
   function refit(snap) { const S = scene.S; scene.fit(S.walk ? 'walk' : S.view === 'room' ? 'room' : 'house', snap); }
   insets(); scene.resize(); scene.fit('house', true);
-  addEventListener('resize', () => { scene.resize(); insets(); refit(); });
+  addEventListener('resize', () => { scene.resize(); insets(); refit(); inside?.resize(); });
   $('teamHead').addEventListener('click', () => { if (mqSide.matches) return; const on = document.body.classList.toggle('sheet-open'); $('teamHead').setAttribute('aria-expanded', on); });
 
   // ---------- room labels
@@ -64,7 +87,7 @@ async function boot() {
   people.addEventListener('click', e => {
     const li = e.target.closest('li'); if (!li) return; const id = li.dataset.id;
     if (e.target.closest('.chatb')) return openChat(id);
-    if (scene.S.walk) scene.walkTo(id); else { scene.focus(id); }
+    if (view === 'inside') inside.enterRoom(scene.S.agents.get(id)?.room); else if (scene.S.walk) scene.walkTo(id); else { scene.focus(id); }
     if (!mqSide.matches) { document.body.classList.remove('sheet-open'); $('teamHead').setAttribute('aria-expanded', false); }
     people.querySelectorAll('li').forEach(x => x.classList.toggle('active', x === li));
   });
@@ -76,7 +99,7 @@ async function boot() {
     el.innerHTML = `<div class="bubble" hidden></div><div class="card"><b>${esc(a.person)}<span class="an"> · ${esc(a.agentName)}</span></b><small><i></i><span></span></small><span class="badge"></span></div>`;
     el.addEventListener('click', () => openChat(a.id)); labels.appendChild(el); tags.set(a.id, el);
   }
-  const youTag = document.createElement('div'); youTag.className = 'tag you small'; youTag.innerHTML = '<div class="card"><b>أنت</b></div>'; youTag.hidden = true; labels.appendChild(youTag);
+  const youTag = document.createElement('div'); youTag.className = 'tag you small'; youTag.innerHTML = `<div class="card"><b>${esc(OWNER.name)}</b></div>`; youTag.hidden = true; labels.appendChild(youTag);
 
   function applyStatus(id) {
     const s = statuses.get(id) || { status: 'offline' }, st = STATUS_LABELS[s.status] ? s.status : 'offline', el = tags.get(id), c = `var(--${st})`;
@@ -114,28 +137,52 @@ async function boot() {
 
   // ---------- per-frame label placement
   let fpsT = 0;
-  function onFrame(S) {
+  function onFrame(S, dt) {
+    if (view === 'inside') return onFrameInside(S, dt);
     const z = S.cam.z;
     for (const { el, at } of roomTags) { const p = scene.toScreen(at[0], at[1]); el.classList.toggle('tiny', z < 0.6); el.style.visibility = scene.S.gathered && el.classList.contains('private') ? 'hidden' : ''; el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) translate(-50%, -50%)`; }
     for (const ag of agents) {
-      const el = tags.get(ag.id), hp = scene.headPoint(ag.id); if (!hp) continue;
+      const el = tags.get(ag.id), hp = scene.headPoint(ag.id); if (!hp) continue; el.style.visibility = ''; el.style.opacity = '';
       const p = scene.toScreen(hp.x, hp.y - 6), box = scene.spriteBox(S.agents.get(ag.id));
       const big = box.h * z > 88 || S.focusId === ag.id;
       el.classList.toggle('small', !big);
       el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) translate(-50%, -100%)`;
     }
-    youTag.hidden = !S.walk;
+    youTag.hidden = !S.avatar;
+    if (S.avatar) { const av = S.avatar, bx = scene.spriteBox(av), p = scene.toScreen(av.pos.x, bx.y - 4); youTag.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) translate(-50%, -100%)`; }
     if (S.walk && S.avatar) {
-      const av = S.avatar, bx = scene.spriteBox(av);
-      const p = scene.toScreen(av.pos.x, bx.y - 4); youTag.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) translate(-50%, -100%)`;
+      const av = S.avatar;
       let near = null, nd = 1e9; for (const ag of S.agents.values()) { const d = Math.hypot(ag.seat.x - av.pos.x, ag.seat.y - av.pos.y); if (d < nd) { nd = d; near = ag; } }
       const tp = $('talkPrompt'); if (near && nd < 80) { tp.hidden = false; tp.textContent = `💬 احجي ويا ${near.agent.person}`; tp.dataset.id = near.id; } else tp.hidden = true;
     } else $('talkPrompt').hidden = true;
     if ((fpsT += 1) % 30 === 0) $('fps').textContent = `${Math.round(S.fps)} fps`;
-    window.__office = { fps: S.fps, agents: S.agents.size, walk: S.walk, gathered: S.gathered, view: S.view, zoom: +z.toFixed(3) };
+    window.__office = { fps: S.fps, agents: S.agents.size, walk: S.walk, gathered: S.gathered, view: S.view, zoom: +z.toFixed(3), view3d: false };
   }
+  function onFrameInside(S, dt) {
+    inside.frame(dt);
+    for (const { el } of roomTags) el.style.visibility = 'hidden';
+    youTag.hidden = true;
+    for (const ag of agents) {
+      const el = tags.get(ag.id), p = inside.project(ag.id);
+      if (!p || !p.vis) { el.style.visibility = 'hidden'; continue; }
+      el.style.visibility = ''; el.classList.toggle('small', p.dist > 4.5);
+      el.style.opacity = p.dist > 10 ? Math.max(0, (13 - p.dist) / 3) : '';
+      el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) translate(-50%, -100%)`;
+    }
+    const near = inside.nearestCat(2.4), tp = $('talkPrompt');
+    if (near) { tp.hidden = false; tp.textContent = `💬 احجي ويا ${S.agents.get(near).agent.person}${coarse ? '' : ' (E)'}`; tp.dataset.id = near; } else tp.hidden = true;
+    if ((fpsT += 1) % 30 === 0) $('fps').textContent = `${Math.round(S.fps)} fps`;
+    window.__office = { fps: S.fps, agents: S.agents.size, walk: false, gathered: S.gathered, view: 'inside', view3d: true, player: { x: +inside.P.x.toFixed(2), z: +inside.P.z.toFixed(2), room: inside.P.room }, greet: S.greet.active, modes: [...S.agents.values()].map(a => a.mode).join(',') };
+  }
+  window.__officeApi = { setView: v => setView(v), enterRoom: id => inside?.enterRoom(id), P: () => inside?.P, greet: () => scene.greet(null), gather: on => setGather(on), scene, renderer: () => inside?.renderer };
   $('talkPrompt').addEventListener('click', e => openChat(e.currentTarget.dataset.id));
-  addEventListener('keydown', e => { if (e.key.toLowerCase() === 'e' && !$('talkPrompt').hidden && !e.target.closest('textarea')) openChat($('talkPrompt').dataset.id); });
+  addEventListener('keydown', e => {
+    if (e.target.closest?.('textarea,input')) return; const k = e.key.toLowerCase();
+    if (k === 'e' || k === 'ث') { if (!$('talkPrompt').hidden) openChat($('talkPrompt').dataset.id); else if (view === 'inside') inside.interact(); }
+    if (k === 'v' || k === 'm' || k === 'ر' || k === 'ة') setView(view === 'inside' ? 'overview' : 'inside');
+  });
+  addEventListener('blur', () => scene.S.keys.clear());
+  $('viewBtn').addEventListener('click', () => setView(view === 'inside' ? 'overview' : 'inside'));
 
   // ---------- buttons
   $('modeBtn').addEventListener('click', () => setWalk(!scene.S.walk));
@@ -174,9 +221,12 @@ async function boot() {
 
   ready = true;
   startStatusFeed(onStatus);
+  setView(qs.get('view') === 'overview' || qs.get('walk') === '1' ? 'overview' : 'inside');
   if (qs.get('walk') === '1') setWalk(true);
+  if (qs.get('inroom') && inside) inside.enterRoom(qs.get('inroom'));
+  if (!qs.has('nogreet')) setTimeout(() => scene.greet(null), 900); // the cats welcome you when the app opens
   if (qs.get('gather') === '1' || qs.get('mode') === 'gather') setGather(true);
-  if (qs.get('room')) scene.focusRoom(qs.get('room'));
+  if (qs.get('room')) { if (view === 'inside') inside.enterRoom(qs.get('room')); else scene.focusRoom(qs.get('room')); }
   if (qs.get('sheet') === '1') $('teamHead').click();
   if (qs.get('chat')) setTimeout(() => openChat(qs.get('chat')), 300);
   setTimeout(() => $('loading').classList.add('hide'), 150);

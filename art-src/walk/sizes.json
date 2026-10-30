@@ -1,0 +1,46 @@
+{
+ "walk4_dawrli": [
+  265,
+  400,
+  4
+ ],
+ "walk4_dev01b": [
+  277,
+  400,
+  4
+ ],
+ "walk4_generic1": [
+  273,
+  400,
+  4
+ ],
+ "walk4_generic2": [
+  274,
+  400,
+  4
+ ],
+ "walk4_marketing": [
+  253,
+  400,
+  4
+ ],
+ "walk4_messaging": [
+  287,
+  400,
+  4
+ ],
+ "walk4_owner": [
+  223,
+  400,
+  4
+ ],
+ "idle_owner": [
+  227,
+  640
+ ],
+ "walk4_planbot": [
+  287,
+  400,
+  4
+ ]
+}

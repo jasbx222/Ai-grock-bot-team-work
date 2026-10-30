@@ -16,8 +16,8 @@ export const FALLBACK_AGENTS = [
 ];
 
 // Illustrated characters shipped in public/art. Each key has 4 files:
-//   sit_<key>.png (at the desk), idle_<key>.png (standing with tea),
-//   walk_<key>.png (walking), face_<key>.jpg (round avatar)
+//   sit_<key>.webp (at the desk), idle_<key>.webp (standing with tea),
+//   walk4_<key>.webp (4-frame walk cycle, facing right), face_<key>.jpg (round avatar)
 export const ART_KEYS = ['dev01b', 'planbot', 'dawrli', 'marketing', 'messaging', 'generic1', 'generic2'];
 // characters handed out automatically to new agents that have no "art"
 export const GENERIC_ART = ['generic1', 'generic2'];
@@ -29,12 +29,15 @@ export function hashId(id) { // FNV-1a 32-bit
 }
 
 export function artPaths(art) {
-  if (art && typeof art === 'object') return art; // custom paths { sit, idle, walk, face }
-  return { key: art, sit: `art/sit_${art}.png`, idle: `art/idle_${art}.png`, walk: `art/walk_${art}.png`, face: `art/face_${art}.jpg` };
+  if (art && typeof art === 'object') return art; // custom paths { sit, idle, walk4 (4 frames, facing right) or walk, face }
+  return { key: art, sit: `art/sit_${art}.webp`, idle: `art/idle_${art}.webp`, walk4: `art/walk4_${art}.webp`, face: `art/face_${art}.jpg` };
 }
 
 // Default character for an id: its own art if it exists, else a generic one
 // picked deterministically from the id hash (same id -> same person, always).
+// the owner (the human player) - not an agent, never part of agents.json
+export const OWNER = { name: 'جاسم', art: { key: 'owner', idle: 'art/idle_owner.webp', walk4: 'art/walk4_owner.webp' } };
+
 export function defaultArt(id) {
   if (ART_KEYS.includes(id)) return id;
   return GENERIC_ART[hashId(id) % GENERIC_ART.length];

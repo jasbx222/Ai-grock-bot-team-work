@@ -6,9 +6,16 @@
   "scripts": {
     "dev": "vite --port 5180 --host 127.0.0.1",
     "build": "vite build",
-    "serve": "vite preview --port 5180 --host 127.0.0.1 --strictPort"
+    "serve": "vite preview --port 5180 --host 127.0.0.1 --strictPort",
+    "desktop:prep": "npm run build && rm -rf desktop/app && cp -r dist desktop/app && rm -f desktop/app/sw.js && (cd desktop && npm install --no-audit --no-fund)",
+    "desktop": "npm run desktop:prep && cd desktop && npx electron .",
+    "desktop:win": "npm run desktop:prep && cd desktop && npm run pack:win && cd ../desktop-dist && python3 -c \"import shutil; shutil.make_archive('CatsOffice-win32-x64', 'zip', '.', 'CatsOffice-win32-x64')\"",
+    "desktop:linux": "npm run desktop:prep && cd desktop && npm run pack:linux && cd ../desktop-dist && rm -f CatsOffice-linux-x64.tar.gz && tar czf CatsOffice-linux-x64.tar.gz CatsOffice-linux-x64"
   },
   "devDependencies": {
     "vite": "^5.4.0"
+  },
+  "dependencies": {
+    "three": "^0.170.0"
   }
 }
