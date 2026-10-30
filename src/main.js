@@ -1,9 +1,9 @@
 import './style.css';
-import { CONFIG } from './config.js';
+import { CONFIG, isLive } from './config.js';
 import { STATUS_LABELS, loadAgents, normalizeAgent, artPaths, GENERIC_ART } from './agents.js';
 import { createScene } from './scene2d.js';
 import { createChatPanel } from './chatPanel.js';
-import { startStatusFeed } from './statusFeed.js';
+import { startStatusFeed, fetchStatus } from './statusFeed.js';
 
 const qs = new URLSearchParams(location.search);
 if (qs.get('status')) CONFIG.statusUrl = qs.get('status');
@@ -15,7 +15,7 @@ async function boot() {
   // agents = agents.json + any unknown id seen in status.json
   const { agents } = await loadAgents();
   let firstStatus = null;
-  try { firstStatus = await (await fetch(`${CONFIG.statusUrl}?t=${Date.now()}`, { cache: 'no-store' })).json(); } catch {}
+  try { firstStatus = await fetchStatus(); } catch {}
   for (const s of firstStatus?.agents || []) if (!agents.some(a => a.id === s.id)) agents.push(normalizeAgent({ id: s.id, agentName: s.agentName || s.id, person: s.person, role: s.role }));
   const byId = new Map(agents.map(a => [a.id, a]));
   const statuses = new Map();
@@ -79,7 +79,7 @@ async function boot() {
   const seen = new Set(); let first = true;
   function onStatus(data, ok) {
     $('feedDot').className = `dot ${ok ? 'ok' : 'bad'}`;
-    $('feedText').textContent = ok ? `آخر تحديث ${new Date().toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'تعذّر قراءة status.json';
+    $('feedText').textContent = ok ? `آخر تحديث ${new Date().toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : (isLive() ? 'تعذّر الاتصال بالسيرفر' : 'تعذّر قراءة status.json');
     if (!ok) return;
     $('sampleBadge').hidden = !data.sample;
     for (const s of data.agents || []) if (byId.has(s.id)) statuses.set(s.id, s);

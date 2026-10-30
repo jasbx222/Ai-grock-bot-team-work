@@ -139,6 +139,26 @@ screens/              لقطات شاشة
 - الشخصيات مبنية إجرائياً (بدون موديلات جاهزة).
 - لا توجد نسخة iOS مبنية.
 
+## الربط الحقيقي بالوكلاء (office-relay)
+
+الباك اند موجود بـ `/workspace/agent-office-backend` (Laravel). إذا ضبطت عنوانه:
+- الحالات تجي من `GET /api/agents` بدل `status.json`، والوكيل اللي ما حدّث حالته من 30 دقيقة يطلع «غير متصل».
+- رسالتك تنرسل للوكيل الحقيقي، وردّه يطلع بالمحادثة (التحديث كل 3 ثواني). الرسالة تبين «✓ وصلت» لو «⚠ ما وصلت».
+- الوكيل اللي ما عنده webhook تنحفظ رسالته ويطلع «لم يُربط بعد».
+- بدون عنوان، يرجع الوضع التجريبي بردود معلّمة «ردّ تجريبي».
+
+**الويب:** عدّل `public/config.js` (لا ترفع التوكن الحقيقي):
+```js
+window.AGENT_OFFICE_CONFIG = Object.assign({ apiBaseUrl: 'https://relay.example.com', appToken: '...' }, window.AGENT_OFFICE_CONFIG || {});
+```
+
+**Flutter:** التطبيق يولّد `config.js` من الـ dart-define:
+```bash
+cd flutter_app && ./tool/sync_web.sh
+flutter build apk --release --split-per-abi --target-platform android-arm64 \
+  --dart-define=API_BASE_URL=https://relay.example.com --dart-define=APP_TOKEN=...
+```
+
 ## بناء APK صغير للموبايل (arm64)
 
 ```bash

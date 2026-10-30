@@ -1,15 +1,32 @@
-// Runtime configuration. Can be overridden before the app loads by defining
-// window.AGENT_OFFICE_CONFIG = { chatEndpoint: '...', statusUrl: '...' }
-// (the Flutter app does this through a small inline script if needed).
+// Runtime configuration. Override before the app loads with
+//   window.AGENT_OFFICE_CONFIG = { apiBaseUrl: 'https://relay.example', appToken: '...' }
+// - Web: put it in public/config.js (loaded by index.html, not committed with real values).
+// - Flutter: generated from --dart-define=API_BASE_URL / APP_TOKEN (served as /config.js).
 const defaults = {
-  // URL of the status file polled every 5 s. Relative so it works from any folder.
+  // office-relay backend. Empty = demo mode (status.json + clearly labelled local demo replies).
+  apiBaseUrl: '',
+  appToken: '',
+  // demo-mode files
   statusUrl: 'status.json',
-  // List of agents (characters are generated from it). Override per page with ?agents=file.json
   agentsUrl: 'agents.json',
   statusPollMs: 5000,
-  // Chat backend. null = demo mode (clearly labelled demo replies, nothing leaves the page).
-  // To plug a real backend later, set an URL here; see chatAdapter.js for the expected contract.
-  chatEndpoint: null,
-  chatHeaders: {},
+  chatPollMs: 3000,
 };
 export const CONFIG = Object.assign({}, defaults, (typeof window !== 'undefined' && window.AGENT_OFFICE_CONFIG) || {});
+CONFIG.apiBaseUrl = String(CONFIG.apiBaseUrl || '').replace(/\/+$/, '');
+
+export const isLive = () => !!CONFIG.apiBaseUrl;
+
+export async function api(path, opts = {}) {
+  const res = await fetch(`${CONFIG.apiBaseUrl}/api${path}`, {
+    ...opts,
+    cache: 'no-store',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${CONFIG.appToken}`, ...(opts.headers || {}) },
+  });
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    try { const j = await res.json(); if (j.message) msg += ` — ${j.message}`; } catch {}
+    throw new Error(msg);
+  }
+  return res.json();
+}

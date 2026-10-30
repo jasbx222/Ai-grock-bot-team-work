@@ -1,33 +1,28 @@
-// The ONLY place that sends chat messages. Swap the implementation here (or set
-// CONFIG.chatEndpoint) to connect the office to real agents later.
-//
-// Contract used when CONFIG.chatEndpoint is set (this is a placeholder contract
-// that you implement on your own server; no real API is assumed):
-//   POST <chatEndpoint>   body: { agentId, text }
-//   200 -> { reply: string }
-import { CONFIG } from './config.js';
+// The ONLY place that talks to agents.
+// Live mode (CONFIG.apiBaseUrl set): office-relay backend
+//   POST /api/agents/{id}/messages {text}      -> stored + forwarded to the agent's webhook
+//   GET  /api/agents/{id}/messages?after=ID    -> real replies posted by the agent
+// Demo mode (no apiBaseUrl): local replies, always labelled «ردّ تجريبي».
+import { isLive, api } from './config.js';
 
 export const DEMO_LABEL = 'ردّ تجريبي';
+export const NOT_LINKED = 'لم يُربط بعد';
 
-export function isDemoMode() { return !CONFIG.chatEndpoint; }
+export function isDemoMode() { return !isLive(); }
 
-/**
- * @param {string} agentId
- * @param {string} text
- * @param {{ agent?: object, status?: object }} [ctx] optional context for the demo replies
- * @returns {Promise<{ text: string, demo: boolean }>}
- */
+/** Live: send a message. Returns { message, connected, notice } */
+export async function sendLive(agentId, text) {
+  return api(`/agents/${encodeURIComponent(agentId)}/messages`, { method: 'POST', body: JSON.stringify({ text }) });
+}
+
+/** Live: fetch messages (after = last seen id, or null for the latest history). */
+export async function fetchLive(agentId, after) {
+  const q = after ? `?after=${after}` : '';
+  return api(`/agents/${encodeURIComponent(agentId)}/messages${q}`);
+}
+
+/** Demo mode only. */
 export async function sendMessage(agentId, text, ctx = {}) {
-  if (CONFIG.chatEndpoint) {
-    const res = await fetch(CONFIG.chatEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...CONFIG.chatHeaders },
-      body: JSON.stringify({ agentId, text }),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    return { text: String(data.reply ?? ''), demo: false };
-  }
   return demoReply(agentId, text, ctx);
 }
 

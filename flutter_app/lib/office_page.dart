@@ -1,13 +1,22 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'local_server.dart';
 import 'main.dart';
 
-/// Optional: point the in-page chat and status at a real backend later.
-/// Leave null to keep the demo mode (replies are labelled «ردّ تجريبي»).
-const String? kChatEndpoint = null;
-const String? kStatusUrl = null;
+/// Live backend (office-relay). Set at build time:
+///   flutter build apk --dart-define=API_BASE_URL=https://... --dart-define=APP_TOKEN=...
+/// Empty = demo mode (status.json + replies labelled «ردّ تجريبي»).
+const String kApiBaseUrl = String.fromEnvironment('API_BASE_URL');
+const String kAppToken = String.fromEnvironment('APP_TOKEN');
+
+/// The web build loads ./config.js before the app; we serve it from memory.
+String buildWebConfig() {
+  final cfg = jsonEncode({'apiBaseUrl': kApiBaseUrl, 'appToken': kAppToken});
+  return 'window.AGENT_OFFICE_CONFIG = Object.assign($cfg, window.AGENT_OFFICE_CONFIG || {});\n';
+}
 
 class OfficePage extends StatefulWidget {
   const OfficePage({super.key});
@@ -17,7 +26,7 @@ class OfficePage extends StatefulWidget {
 }
 
 class _OfficePageState extends State<OfficePage> {
-  final _server = LocalAssetServer();
+  final _server = LocalAssetServer(overrides: {'/config.js': buildWebConfig()});
   WebViewController? _controller;
   bool _loading = true;
   String? _error;
@@ -31,20 +40,11 @@ class _OfficePageState extends State<OfficePage> {
   Future<void> _boot() async {
     try {
       final port = await _server.start();
-      final config = <String>[
-        if (kChatEndpoint != null) "chatEndpoint:'$kChatEndpoint'",
-        if (kStatusUrl != null) "statusUrl:'$kStatusUrl'",
-      ].join(',');
       final controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(OfficeColors.night)
         ..addJavaScriptChannel('FlutterBridge', onMessageReceived: (m) => debugPrint('web: ${m.message}'))
         ..setNavigationDelegate(NavigationDelegate(
-          onPageStarted: (_) {
-            if (config.isNotEmpty) {
-              _controller?.runJavaScript('window.AGENT_OFFICE_CONFIG={$config};');
-            }
-          },
           onPageFinished: (_) => setState(() => _loading = false),
           onWebResourceError: (e) {
             if (e.isForMainFrame ?? true) setState(() => _error = e.description);

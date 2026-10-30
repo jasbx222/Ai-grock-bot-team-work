@@ -5,6 +5,11 @@ import 'package:flutter/services.dart';
 /// Serves the bundled web build (assets/web/**) on 127.0.0.1 so the 3D office
 /// runs fully offline inside the WebView (ES modules + fetch need http://).
 class LocalAssetServer {
+  LocalAssetServer({this.overrides = const {}});
+
+  /// Paths served from memory instead of the bundle (e.g. a generated /config.js).
+  final Map<String, String> overrides;
+
   HttpServer? _server;
 
   int get port => _server?.port ?? 0;
@@ -28,6 +33,16 @@ class LocalAssetServer {
       if (path.isEmpty || path == '/') path = '/index.html';
       if (path.contains('..')) {
         req.response.statusCode = HttpStatus.forbidden;
+        await req.response.close();
+        return;
+      }
+      final override = overrides[path];
+      if (override != null) {
+        final ext = path.split('.').last.toLowerCase();
+        req.response.headers
+          ..set(HttpHeaders.contentTypeHeader, _types[ext] ?? 'text/plain; charset=utf-8')
+          ..set(HttpHeaders.cacheControlHeader, 'no-store');
+        req.response.write(override);
         await req.response.close();
         return;
       }
