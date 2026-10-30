@@ -2,6 +2,12 @@ import asyncio, sys, json
 from playwright.async_api import async_playwright
 BASE = 'http://127.0.0.1:5180/'
 RUNS = [
+  ('house-390x844-rooms', 390, 844, '', None), ('house-390x844-gather', 390, 844, '?mode=gather', 'wait6'),
+  ('house-844x390-rooms', 844, 390, '', None), ('house-844x390-gather', 844, 390, '?mode=gather', 'wait6'),
+  ('house-768x1024-rooms', 768, 1024, '', None), ('house-768x1024-gather', 768, 1024, '?mode=gather', 'wait6'),
+  ('house-1440x900-rooms', 1440, 900, '', None), ('house-1440x900-gather', 1440, 900, '?mode=gather', 'wait6'),
+  ('house-390x844-room-zoom', 390, 844, '?room=r1', None), ('house-390x844-sheet', 390, 844, '?sheet=1', None),
+  ('house-390x844-walk', 390, 844, '?walk=1', 'walk'), ('house-390x844-chat', 390, 844, '?chat=messaging', None),
   ('m-home-cats', 412, 860, '', None),
   ('d-home-cats', 1440, 900, '', None),
   ('d-gather-cats', 1440, 900, '?gather=1', 'wait6'),
@@ -25,7 +31,7 @@ async def main():
             pg.on('pageerror', lambda e: errs.append(str(e)))
             pg.on('requestfailed', lambda r: errs.append('FAIL ' + r.url))
             pg.on('response', lambda r: errs.append(f'{r.status} {r.url}') if r.status >= 400 else None)
-            await pg.goto(BASE + q); await pg.wait_for_timeout(3500)
+            await pg.goto(BASE + q + ('&' if '?' in q else '?') + 'nosw=1'); await pg.wait_for_timeout(3500)
             if act == 'wait6': await pg.wait_for_timeout(5000)
             if act == 'overview': await pg.click('#resetBtn'); await pg.wait_for_timeout(2500)
             if act == 'walk':

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#2a1c14" />
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>بيت القطط الدافئ</title>
+  <script type="module" crossorigin src="./assets/index-BzM1HL_k.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-Bk9_oMCD.css">
+</head>
+<body>
+  <main id="stage"><canvas id="scene"></canvas><div id="labels"></div></main>
+
+  <header id="topbar">
+    <div class="bar">
+      <div class="logo">🏡</div>
+      <div class="ttl"><h1>بيت القطط الدافئ</h1><p class="sub"><b id="greet">مساء الخير</b> · <span id="clock"></span></p></div>
+      <div class="chips"><span id="feedDot" class="dot" title="حالة التحديث"></span><span id="feedText">جاري التحميل…</span>
+        <span id="sampleBadge" class="sample" hidden title="بيانات تجريبية">SAMPLE</span><span id="fps" class="fps"></span></div>
+    </div>
+  </header>
+
+  <section id="team" aria-label="فريق اليوم">
+    <button id="teamHead" class="team-head" aria-expanded="false">
+      <span class="grab"></span>
+      <span class="ht"><h2>فريق اليوم</h2><span id="teamCount"></span></span>
+      <span id="peek" class="peek"></span>
+      <span class="chev">▴</span>
+    </button>
+    <ul id="people"></ul>
+  </section>
+
+  <div id="controls">
+    <div class="seg" role="group" aria-label="وضع البيت">
+      <button id="roomsBtn" class="on">🏠 كل واحد بغرفته</button>
+      <button id="gatherBtn">☕ اجتماعهم</button>
+    </div>
+    <button id="modeBtn" class="btn icon" title="وضع المشي" aria-label="وضع المشي">🚶<span class="lbl"> مشي</span></button>
+    <button id="resetBtn" class="btn icon" title="البيت كله" aria-label="البيت كله">⌂<span class="lbl"> البيت كله</span></button>
+  </div>
+  <div id="joystick" hidden><div class="knob"></div></div>
+  <div id="walkHelp" hidden><span>امشِ بالجويستيك أو W A S D · اضغط اسم بالقائمة حتى تروح يمّه</span><button aria-label="إخفاء">✕</button></div>
+  <button id="talkPrompt" hidden></button>
+
+  <aside id="chat" aria-label="المحادثة">
+    <div class="head">
+      <div class="avatar"></div>
+      <div class="info"><div class="who"></div><div class="role"></div></div>
+      <button class="clear" title="مسح المحادثة">🗑</button>
+      <button class="close" title="إغلاق">✕</button>
+    </div>
+    <div class="statusline"><span class="st pill"></span><span class="task"></span></div>
+    <div class="demo-banner">وضع تجريبي: الردود تتولّد محلياً ومعلّمة «ردّ تجريبي» — مو من الوكيل الحقيقي.</div>
+    <div class="messages"></div>
+    <div class="typing" hidden><span></span><span></span><span></span></div>
+    <form><textarea rows="1" placeholder="اكتب رسالة…"></textarea><button type="submit" class="send">إرسال</button></form>
+  </aside>
+
+  <div id="loading">☕ جاري تجهيز بيت القطط الدافئ…</div>
+  <script src="./config.js"></script>
+</body>
+</html>

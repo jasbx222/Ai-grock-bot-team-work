@@ -22,6 +22,11 @@ class LocalAssetServer {
     'ttf': 'font/ttf',
     'png': 'image/png',
     'svg': 'image/svg+xml',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'webp': 'image/webp',
+    'webmanifest': 'application/manifest+json',
+    'woff2': 'font/woff2',
   };
 
   Future<int> start() async {

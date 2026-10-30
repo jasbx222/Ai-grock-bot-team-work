@@ -1,51 +1,57 @@
-// Geometry of the illustrated room (public/art/room_bg.jpg).
-// World units = pixels of the 1280x720 reference grid (the image itself is 2560x1440).
-// Everything here was measured on the painted background, so if the room art is
-// swapped, only this file needs new numbers.
-export const WORLD = { w: 1280, h: 720, bg: 'art/room_bg.jpg', bgColor: '#141a2b' };
+// Geometry of the illustrated house (public/art/house_bg.jpg, 2048² image drawn into 1024x1024 world units).
+// All numbers were measured on the painting; swapping the art only needs new numbers here.
+export const WORLD = { w: 1024, h: 1024, bg: 'art/house_bg.jpg', bgColor: '#0f1526', house: [76, 56, 964, 858] };
 
-// round family table (gather point)
-export const TABLE = { x: 634, y: 418 };
-// gather ring around the table (feet positions)
-export const GATHER_RING = { x: 634, y: 424, rx: 196, ry: 118 };
+// rooms: rect = whole room incl. back wall (tap / zoom box), floor = rects where feet may stand.
+// private rooms get an owner (one per agent, in agents.json order); slot = desk sprite feet.
+export const ROOMS = [
+  { id: 'r1', kind: 'private', rect: [128, 62, 400, 296], floor: [[150, 178, 390, 290]], slot: [283, 263] },
+  { id: 'r2', kind: 'private', rect: [400, 62, 640, 292], floor: [[418, 176, 626, 284]], slot: [516, 257] },
+  { id: 'r3', kind: 'private', rect: [640, 62, 912, 296], floor: [[652, 182, 898, 290]], slot: [750, 264] },
+  { id: 'r4', kind: 'private', rect: [88, 584, 382, 842], floor: [[118, 682, 372, 826]], slot: [250, 790] },
+  { id: 'r5', kind: 'private', rect: [648, 584, 946, 842], floor: [[662, 682, 930, 826]], slot: [786, 790] },
+  { id: 'kitchen', kind: 'shared', name: 'المطبخ ☕', rect: [84, 290, 338, 592], floor: [[192, 392, 340, 580]] },
+  { id: 'hall', kind: 'shared', name: 'صالة العائلة 🛋', rect: [338, 262, 704, 600], floor: [[338, 380, 704, 594]] },
+  { id: 'meeting', kind: 'shared', name: 'الاجتماعات 📋', rect: [704, 290, 958, 592], floor: [[710, 384, 936, 578]] },
+  { id: 'hallway', kind: 'shared', name: 'المدخل 🚪', rect: [380, 596, 650, 900], floor: [[470, 636, 556, 840]] },
+];
+// doorways: a/b rooms, rect = walkable bridge through the wall, pa/pb = waypoints on each side
+export const DOORS = [
+  { a: 'r1', b: 'hall', rect: [350, 278, 392, 394], pa: [370, 284], pb: [372, 392] },
+  { a: 'r2', b: 'hall', rect: [588, 272, 626, 394], pa: [606, 278], pb: [608, 392] },
+  { a: 'r3', b: 'hall', rect: [652, 278, 694, 394], pa: [672, 286], pb: [672, 392] },
+  { a: 'kitchen', b: 'hall', rect: [320, 398, 350, 578], pa: [318, 486], pb: [350, 486] },
+  { a: 'meeting', b: 'hall', rect: [696, 398, 720, 578], pa: [722, 486], pb: [694, 486] },
+  { a: 'hallway', b: 'hall', rect: [476, 580, 552, 652], pa: [512, 648], pb: [512, 586] },
+  { a: 'r4', b: 'hall', rect: [340, 580, 372, 692], pa: [356, 686], pb: [356, 588] },
+  { a: 'r5', b: 'hall', rect: [664, 580, 700, 692], pa: [682, 686], pb: [682, 588] },
+];
+// extra desks for agents beyond the 5 private rooms
+export const EXTRA_SLOTS = [[268, 566, 'kitchen'], [880, 566, 'meeting'], [430, 590, 'hall']];
 
-// walkable floor (polygon) and solid furniture (ellipses on the floor)
-export const WALK_POLY = [[112, 505], [400, 358], [560, 296], [780, 318], [1000, 432], [1042, 500], [662, 702], [612, 702]];
+// family hall: furniture cluster + gather ring
+export const GATHER_RING = { x: 512, y: 482, rx: 165, ry: 105 };
 export const OBSTACLES = [
-  { x: 634, y: 416, rx: 150, ry: 88 }, // round table
-  { x: 290, y: 535, rx: 80, ry: 54 },  // left armchair
-  { x: 915, y: 522, rx: 82, ry: 56 },  // right armchair
+  { x: 510, y: 478, rx: 48, ry: 30 },  // tea table
+  { x: 408, y: 420, rx: 32, ry: 22 }, { x: 618, y: 418, rx: 32, ry: 22 },
+  { x: 392, y: 522, rx: 32, ry: 22 }, { x: 632, y: 522, rx: 32, ry: 22 },
+  { x: 510, y: 560, rx: 72, ry: 22 },  // sofa
+  { x: 800, y: 456, rx: 50, ry: 88 },  // meeting table
 ];
-
-// Parts of the painting that must be drawn IN FRONT of anybody standing behind
-// them (depth sorted by baseY): redrawn from the background through a clip path.
-const ell = (cx, cy, rx, ry, n = 28) => Array.from({ length: n }, (_, i) => [cx + rx * Math.cos((i / n) * Math.PI * 2), cy + ry * Math.sin((i / n) * Math.PI * 2)]);
-export const OCCLUDERS = [
-  { name: 'table', baseY: 505, polys: [ell(634, 412, 127, 77), [[636, 470], [664, 470], [664, 550], [636, 550]], [[542, 455], [562, 455], [562, 506], [542, 506]], [[716, 455], [737, 455], [737, 502], [716, 502]]] },
-  { name: 'chairL', baseY: 592, polys: [[[232, 452], [270, 438], [302, 444], [332, 468], [360, 492], [364, 532], [348, 562], [332, 592], [300, 612], [254, 606], [222, 590], [212, 558], [218, 500]]] },
-  { name: 'chairR', baseY: 590, polys: [[[848, 470], [880, 438], [922, 426], [962, 433], [988, 455], [998, 500], [992, 560], [966, 582], [930, 602], [880, 612], [843, 596], [833, 540], [838, 494]]] },
-];
-
-// desk slots (feet of the desk sprite = bottom centre). First the hand-placed
-// ones around the rug, then extra agents get auto slots (see scene2d.js).
-export const DESK_SLOTS = [[452, 386], [834, 386], [452, 600], [776, 616], [612, 672]];
+export const TEA_SPOT = { x: 236, y: 470 }; // where cats go for a glass of tea
 
 // ambience
-export const FIRE = { x: 258, y: 330 };
-export const LAMPS = [{ x: 115, y: 305 }, { x: 1032, y: 292 }];
-export const TANK = { x0: 1064, y0: 340, x1: 1212, y1: 446 };
-export const WINDOWS = [
-  [[650, 0], [876, 0], [876, 228], [650, 176]],
-  [[906, 50], [1084, 112], [1084, 290], [906, 252]],
-];
-export const BIRD = { x: 1205, y: 262 };
+export const FIRE = { x: 515, y: 352 };
+export const LAMPS = [[368, 132], [572, 150], [808, 132], [318, 648], [843, 648], [885, 362], [275, 322], [432, 650], [592, 650]].map(([x, y]) => ({ x, y }));
+export const TANK = { x0: 398, y0: 716, x1: 462, y1: 752 };   // procedural aquarium (hallway nook)
+export const CAGE = { x: 604, y: 742 };                       // procedural bird cage (hallway nook)
 export const PETS = [
-  { id: 'cat', img: 'art/cat.png', x: 318, y: 420, w: 74, kind: 'cat', name: 'كوكي' },
-  { id: 'dog', img: 'art/dog.png', x: 978, y: 470, w: 92, kind: 'dog', name: 'بندق' },
+  { id: 'cat', img: 'art/cat.png', x: 470, y: 552, w: 40, kind: 'cat', name: 'كوكي' },
+  { id: 'dog', img: 'art/dog.png', x: 262, y: 545, w: 58, kind: 'dog', name: 'بندق' },
 ];
-// string-light bulbs detected on the painting (for twinkle)
-export const LIGHTS = [[568, 6], [595, 14], [544, 14], [608, 15], [710, 16], [638, 20], [694, 22], [665, 22], [668, 27], [740, 32], [518, 38], [738, 38], [764, 54], [766, 49], [496, 52], [890, 58], [788, 64], [898, 68], [864, 69], [815, 72], [840, 73], [866, 72], [918, 87], [942, 110], [938, 114], [328, 121], [966, 132], [298, 132], [302, 141], [991, 145], [1096, 147], [1018, 154], [1073, 155], [1045, 156], [1070, 160], [1046, 161], [302, 166], [1112, 169], [315, 178], [190, 180], [186, 188], [298, 183], [1128, 194], [281, 194], [206, 197], [266, 203], [1141, 210], [239, 212], [209, 224], [210, 228], [192, 241], [250, 298]];
+const lights = (x0, x1, y, step = 17) => Array.from({ length: Math.floor((x1 - x0) / step) + 1 }, (_, i) => [x0 + i * step, y + Math.sin((i / ((x1 - x0) / step)) * Math.PI) * 5]);
+export const LIGHTS = [...lights(185, 395, 88), ...lights(480, 625, 88), ...lights(715, 860, 88), ...lights(752, 892, 322), ...lights(212, 360, 606), ...lights(742, 886, 606)];
 
-export const SIT_H = 150;   // world height of a seated desk sprite at depth 1
-export const STAND_H = 142; // world height of a standing person at depth 1
-export const depthScale = y => 0.8 + 0.32 * Math.min(1, Math.max(0, (y - 290) / 410));
+export const SIT_H = 112;   // world height of a desk+cat sprite
+export const STAND_H = 88;  // world height of a standing cat
+export const depthScale = y => 0.94 + 0.1 * Math.min(1, Math.max(0, y / 1024));

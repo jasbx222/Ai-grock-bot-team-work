@@ -2,37 +2,46 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#2a1c14" />
-  <link rel="icon" href="data:," />
-  <title>مكتبنا الدافئ</title>
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>بيت القطط الدافئ</title>
 </head>
 <body>
   <main id="stage"><canvas id="scene"></canvas><div id="labels"></div></main>
 
   <header id="topbar">
-    <div class="card brand">
+    <div class="bar">
       <div class="logo">🏡</div>
-      <div><h1>مكتبنا الدافئ</h1><p>مساحة عمل، عائلة، وإنجاز</p></div>
-      <div class="hello"><b id="greet">مساء الخير</b><span id="clock"></span></div>
+      <div class="ttl"><h1>بيت القطط الدافئ</h1><p class="sub"><b id="greet">مساء الخير</b> · <span id="clock"></span></p></div>
+      <div class="chips"><span id="feedDot" class="dot" title="حالة التحديث"></span><span id="feedText">جاري التحميل…</span>
+        <span id="sampleBadge" class="sample" hidden title="بيانات تجريبية">SAMPLE</span><span id="fps" class="fps"></span></div>
     </div>
-    <div class="chips"><span id="feedDot" class="dot"></span><span id="feedText">جاري التحميل…</span>
-      <span id="sampleBadge" class="sample" hidden>SAMPLE · بيانات تجريبية</span><span id="fps" class="fps"></span></div>
   </header>
 
   <section id="team" aria-label="فريق اليوم">
-    <div class="grab"></div>
-    <div class="team-head"><h2>فريق اليوم</h2><span id="teamCount"></span></div>
+    <button id="teamHead" class="team-head" aria-expanded="false">
+      <span class="grab"></span>
+      <span class="ht"><h2>فريق اليوم</h2><span id="teamCount"></span></span>
+      <span id="peek" class="peek"></span>
+      <span class="chev">▴</span>
+    </button>
     <ul id="people"></ul>
   </section>
 
   <div id="controls">
-    <button id="modeBtn" class="btn teal">🚶 وضع المشي</button>
-    <button id="gatherBtn" class="btn amber">☕ اجتمعوا</button>
-    <button id="resetBtn" class="btn">⌂ نظرة عامة</button>
+    <div class="seg" role="group" aria-label="وضع البيت">
+      <button id="roomsBtn" class="on">🏠 كل واحد بغرفته</button>
+      <button id="gatherBtn">☕ اجتماعهم</button>
+    </div>
+    <button id="modeBtn" class="btn icon" title="وضع المشي" aria-label="وضع المشي">🚶<span class="lbl"> مشي</span></button>
+    <button id="resetBtn" class="btn icon" title="البيت كله" aria-label="البيت كله">⌂<span class="lbl"> البيت كله</span></button>
   </div>
   <div id="joystick" hidden><div class="knob"></div></div>
-  <div id="walkHelp" hidden>W A S D أو الجويستيك للمشي · اضغط على أي واحد بالقائمة حتى تروح يمّه</div>
+  <div id="walkHelp" hidden><span>امشِ بالجويستيك أو W A S D · اضغط اسم بالقائمة حتى تروح يمّه</span><button aria-label="إخفاء">✕</button></div>
   <button id="talkPrompt" hidden></button>
 
   <aside id="chat" aria-label="المحادثة">
@@ -49,7 +58,7 @@
     <form><textarea rows="1" placeholder="اكتب رسالة…"></textarea><button type="submit" class="send">إرسال</button></form>
   </aside>
 
-  <div id="loading">☕ جاري تجهيز المكتب الدافئ…</div>
+  <div id="loading">☕ جاري تجهيز بيت القطط الدافئ…</div>
   <script src="./config.js"></script>
   <script type="module" src="./src/main.js"></script>
 </body>

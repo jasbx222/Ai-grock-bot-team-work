@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'office_page.dart';
+import 'office_home.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,7 +37,7 @@ class AgentOfficeApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: OfficeColors.teal, surface: OfficeColors.cream),
         scaffoldBackgroundColor: OfficeColors.night,
       ),
-      home: const OfficePage(),
+      home: const OfficeHome(),
     );
   }
 }
