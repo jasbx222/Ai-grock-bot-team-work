@@ -1,0 +1,13 @@
+{
+  "name": "agent-office",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5180 --host 127.0.0.1",
+    "build": "vite build",
+    "serve": "vite preview --port 5180 --host 127.0.0.1 --strictPort"
+  },
+  "dependencies": { "three": "^0.169.0" },
+  "devDependencies": { "vite": "^5.4.0" }
+}

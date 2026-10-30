@@ -1,0 +1,33 @@
+# dependencies & build output
+node_modules/
+dist/
+*.log
+.vite/
+
+# Flutter / Android build output
+flutter_app/build/
+flutter_app/.dart_tool/
+flutter_app/.flutter-plugins
+flutter_app/.flutter-plugins-dependencies
+flutter_app/.idea/
+flutter_app/android/.gradle/
+flutter_app/android/local.properties
+flutter_app/android/app/debug/
+flutter_app/android/app/release/
+flutter_app/assets/web/
+*.apk
+*.aab
+*.iml
+
+# secrets / local
+.env
+.env.*
+*.keystore
+*.jks
+key.properties
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+__pycache__/

@@ -1,0 +1,59 @@
+{
+  "_note": "بيانات تجريبية لاختبار ٦ وكلاء (SAMPLE DATA)",
+  "sample": true,
+  "updatedAt": "2026-10-31T00:05:00+03:00",
+  "agents": [
+    {
+      "id": "dev01b",
+      "status": "working",
+      "task": "يبني نسخة تجريبية للمكتب الافتراضي 3D"
+    },
+    {
+      "id": "planbot",
+      "status": "working",
+      "task": "يرتب خطة مرحلة ٢ للمنشور التلقائي"
+    },
+    {
+      "id": "dawrli",
+      "status": "waiting",
+      "task": "ينتظر موافقة على دمج فرع feat/auto-post"
+    },
+    {
+      "id": "marketing",
+      "status": "done",
+      "task": "خلّص تصاميم حملة دورلي",
+      "result": "١٢ تصميم جاهز للنشر"
+    },
+    {
+      "id": "messaging",
+      "status": "problem",
+      "task": "رسائل واتساب التجريبية",
+      "reason": "ينتظر موافقتك قبل إرسال أي رسالة تجريبية"
+    },
+    {
+      "id": "support-bot",
+      "status": "working",
+      "task": "يرد على استفسارات العملاء (تجريبي)"
+    }
+  ],
+  "messages": [
+    {
+      "id": "m1",
+      "from": "planbot",
+      "to": "dev01b",
+      "at": "2026-10-31T00:04:00+03:00"
+    },
+    {
+      "id": "m2",
+      "from": "dev01b",
+      "to": "dawrli",
+      "at": "2026-10-31T00:04:30+03:00"
+    },
+    {
+      "id": "m3",
+      "from": "messaging",
+      "to": "support-bot",
+      "at": "2026-10-31T00:05:00+03:00"
+    }
+  ]
+}
