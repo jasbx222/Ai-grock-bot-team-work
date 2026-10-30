@@ -138,3 +138,13 @@ screens/              لقطات شاشة
 - الردود والحالات تجريبية؛ ماكو اتصال حقيقي بالوكلاء.
 - الشخصيات مبنية إجرائياً (بدون موديلات جاهزة).
 - لا توجد نسخة iOS مبنية.
+
+## بناء APK صغير للموبايل (arm64)
+
+```bash
+cd flutter_app
+bash tool/sync_web.sh
+flutter build apk --release --split-per-abi --target-platform android-arm64
+# الناتج: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk (~22MB)
+```
+ملاحظة: نسخة الـ release حالياً موقّعة بمفتاح الـ debug (للتجربة فقط). للنشر بالمتجر لازم مفتاح release خاص.
