@@ -1,20 +1,40 @@
 {
-  "_note": "قائمة الوكلاء. أضف وكيل جديد هنا ويطلع تلقائياً بالمكتب (شخصية + مقعد + اسم + محادثة + حالة). look اختياري: إذا ما انكتب يتولّد شكل ثابت من الـ id.",
-  "agents": [
-    { "id": "dev01b", "agentName": "dev 01 b", "person": "يوسف", "role": "مبرمج فول ستاك ومصمم",
-      "props": ["dualMonitor", "coffee"], "blanket": "#c8693f",
-      "look": { "skin": "#c68e6a", "hair": "#1d1410", "hairStyle": "short", "beard": true, "glasses": false, "female": false, "shirt": "#2f5d8a", "pants": "#2b2f3a", "shoes": "#2a1d14" } },
-    { "id": "planbot", "agentName": "plan bot", "person": "سارة", "role": "تخطيط وتطوير",
-      "props": ["monitor", "notebook", "tea"], "blanket": "#e9dcc4",
-      "look": { "skin": "#e0b392", "hair": "#4a2a17", "hairStyle": "bob", "beard": false, "glasses": false, "female": true, "shirt": "#9b3d4a", "pants": "#30343f", "shoes": "#1c1c1c" } },
-    { "id": "dawrli", "agentName": "dawrli dev", "person": "علي", "role": "مبرمج تطبيقات",
-      "props": ["monitor", "laptop", "tea"], "blanket": "#4f8a8b",
-      "look": { "skin": "#a8734f", "hair": "#0f0c0a", "hairStyle": "curly", "beard": true, "glasses": false, "female": false, "shirt": "#3f6b4a", "pants": "#3a3229", "shoes": "#3b2a1e" } },
-    { "id": "marketing", "agentName": "Marketing and Advertising", "person": "ليلى", "role": "قسم التسويق",
-      "props": ["designScreen", "tea"], "blanket": "#d9a441",
-      "look": { "skin": "#d9a07c", "hair": "#2a1a12", "hairStyle": "long", "beard": false, "glasses": false, "female": true, "shirt": "#d88a3a", "pants": "#283044", "shoes": "#5a2b1f" } },
-    { "id": "messaging", "agentName": "المراسلات رفيور", "person": "جون", "role": "مطور ورفيور مراسلات",
-      "props": ["monitor", "headset", "phone", "tea"], "blanket": "#8a5a3c",
-      "look": { "skin": "#e8bfa0", "hair": "#8a5a32", "hairStyle": "short", "beard": false, "glasses": true, "female": false, "shirt": "#37707f", "pants": "#2a2a30", "shoes": "#1e1e22" } }
-  ]
+ "_note": "قائمة الوكلاء (عائلة القطط). أضف وكيل جديد هنا ويطلع تلقائياً بالبيت (قطّة + مكتب + اسم + محادثة + حالة). art اختياري: إذا ما انكتب تنطى قطّة جاهزة ثابتة حسب الـ id (generic1 قطّة بيضاء / generic2 قطّ رمادي).",
+ "agents": [
+  {
+   "id": "dev01b",
+   "agentName": "dev 01 b",
+   "person": "سيمبا",
+   "role": "مبرمج فول ستاك ومصمم",
+   "art": "dev01b"
+  },
+  {
+   "id": "planbot",
+   "agentName": "plan bot",
+   "person": "مشمش",
+   "role": "تخطيط وتطوير",
+   "art": "planbot"
+  },
+  {
+   "id": "dawrli",
+   "agentName": "dawrli dev",
+   "person": "بسكت",
+   "role": "مبرمج تطبيقات",
+   "art": "dawrli"
+  },
+  {
+   "id": "marketing",
+   "agentName": "Marketing and Advertising",
+   "person": "لولو",
+   "role": "قسم التسويق",
+   "art": "marketing"
+  },
+  {
+   "id": "messaging",
+   "agentName": "المراسلات رفيور",
+   "person": "جون",
+   "role": "مطور ورفيور مراسلات",
+   "art": "messaging"
+  }
+ ]
 }

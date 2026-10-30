@@ -95,7 +95,7 @@ class _Splash extends StatelessWidget {
         SizedBox(height: 12),
         Text('مكتب الوكلاء', style: TextStyle(color: OfficeColors.cream, fontSize: 24, fontWeight: FontWeight.w800)),
         SizedBox(height: 6),
-        Text('جاري تجهيز المكتب الدافئ…', style: TextStyle(color: Color(0xFFFBE7C6), fontSize: 15)),
+        Text('جاري تجهيز بيت القطط الدافئ… 🐾', style: TextStyle(color: Color(0xFFFBE7C6), fontSize: 15)),
         SizedBox(height: 20),
         SizedBox(width: 28, height: 28, child: CircularProgressIndicator(color: OfficeColors.amber, strokeWidth: 3)),
       ]),

@@ -1,0 +1,102 @@
+{
+ "sit_dawrli": [
+  574,
+  640
+ ],
+ "sit_dev01b": [
+  482,
+  640
+ ],
+ "sit_generic1": [
+  481,
+  640
+ ],
+ "sit_generic2": [
+  494,
+  640
+ ],
+ "sit_marketing": [
+  455,
+  640
+ ],
+ "sit_messaging": [
+  577,
+  640
+ ],
+ "sit_planbot": [
+  502,
+  640
+ ],
+ "desk_empty": [
+  534,
+  538
+ ],
+ "idle_dawrli": [
+  274,
+  520
+ ],
+ "walk_dawrli": [
+  322,
+  520
+ ],
+ "idle_dev01b": [
+  276,
+  520
+ ],
+ "walk_dev01b": [
+  312,
+  520
+ ],
+ "idle_generic1": [
+  292,
+  519
+ ],
+ "walk_generic1": [
+  334,
+  518
+ ],
+ "idle_generic2": [
+  296,
+  520
+ ],
+ "walk_generic2": [
+  326,
+  520
+ ],
+ "idle_marketing": [
+  251,
+  520
+ ],
+ "walk_marketing": [
+  280,
+  519
+ ],
+ "idle_messaging": [
+  234,
+  520
+ ],
+ "walk_messaging": [
+  290,
+  520
+ ],
+ "idle_planbot": [
+  291,
+  520
+ ],
+ "walk_planbot": [
+  329,
+  520
+ ],
+ "cat": [
+  450,
+  343
+ ],
+ "dog": [
+  472,
+  360
+ ],
+ "room_bg": [
+  2560,
+  1440
+ ]
+}

@@ -3,35 +3,37 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <title>مكتب الوكلاء 3D</title>
+  <meta name="theme-color" content="#2a1c14" />
+  <link rel="icon" href="data:," />
+  <title>مكتبنا الدافئ</title>
 </head>
 <body>
-  <div id="app"></div>
-  <div id="labels"></div>
+  <main id="stage"><canvas id="scene"></canvas><div id="labels"></div></main>
 
   <header id="topbar">
-    <div class="brand"><span class="logo">◆</span> مكتب الوكلاء <small>نسخة تجريبية</small></div>
-    <div class="legend">
-      <span class="pill working">يشتغل</span><span class="pill waiting">ينتظر</span>
-      <span class="pill problem">عنده مشكلة</span><span class="pill done">خلّص</span>
+    <div class="card brand">
+      <div class="logo">🏡</div>
+      <div><h1>مكتبنا الدافئ</h1><p>مساحة عمل، عائلة، وإنجاز</p></div>
+      <div class="hello"><b id="greet">مساء الخير</b><span id="clock"></span></div>
     </div>
-    <div class="feed"><span id="feedDot" class="dot"></span><span id="feedText">جاري التحميل…</span>
-      <span id="sampleBadge" class="sample" hidden>بيانات تجريبية</span><span id="fps" class="fps"></span></div>
+    <div class="chips"><span id="feedDot" class="dot"></span><span id="feedText">جاري التحميل…</span>
+      <span id="sampleBadge" class="sample" hidden>SAMPLE · بيانات تجريبية</span><span id="fps" class="fps"></span></div>
   </header>
 
-  <nav id="people"></nav>
+  <section id="team" aria-label="فريق اليوم">
+    <div class="grab"></div>
+    <div class="team-head"><h2>فريق اليوم</h2><span id="teamCount"></span></div>
+    <ul id="people"></ul>
+  </section>
 
-  <div id="modebar">
-    <button id="modeBtn" class="btn primary">🚶 تمشّى بالمكتب</button>
+  <div id="controls">
+    <button id="modeBtn" class="btn teal">🚶 وضع المشي</button>
+    <button id="gatherBtn" class="btn amber">☕ اجتمعوا</button>
     <button id="resetBtn" class="btn">⌂ نظرة عامة</button>
   </div>
-
-  <div id="walkHelp" hidden>
-    <span class="desk">W A S D للمشي · اسحب بالماوس للتلفّت · Shift للركض</span>
-    <span class="touch">الجويستيك للمشي · اسحب بالشاشة للتلفّت</span>
-  </div>
   <div id="joystick" hidden><div class="knob"></div></div>
-  <div id="crosshair" hidden></div>
+  <div id="walkHelp" hidden>W A S D أو الجويستيك للمشي · اضغط على أي واحد بالقائمة حتى تروح يمّه</div>
+  <button id="talkPrompt" hidden></button>
 
   <aside id="chat" aria-label="المحادثة">
     <div class="head">

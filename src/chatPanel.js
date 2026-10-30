@@ -37,8 +37,8 @@ export function createChatPanel({ getAgent, getStatus, onOpen, onClose }) {
 
   function header() {
     const a = getAgent(current), s = getStatus(current) || {};
-    panel.querySelector('.avatar').style.background = `#${a.look.shirt.toString(16).padStart(6, '0')}`;
-    panel.querySelector('.avatar').textContent = a.person[0];
+    panel.querySelector('.avatar').style.backgroundImage = `url(${a.face})`;
+    
     panel.querySelector('.who').textContent = `${a.person} · ${a.agentName}`;
     panel.querySelector('.role').textContent = a.role;
     const st = panel.querySelector('.st');
