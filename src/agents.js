@@ -2,18 +2,23 @@
 // Any agent listed there - or any unknown id that shows up in status.json -
 // automatically gets a character, a desk, a name label, a chat panel and a
 // status entry. No code change needed.
-import { CONFIG } from './config.js';
+import { CONFIG, isLive, api } from './config.js';
 
 export const STATUS_LABELS = { working: 'يشتغل', waiting: 'ينتظر', problem: 'عنده مشكلة', done: 'خلّص', offline: 'غير متصل' };
 
 // Built-in fallback (used only if agents.json cannot be loaded)
 export const FALLBACK_AGENTS = [
-  { id: 'dev01b', agentName: 'dev 01 b', person: 'سيمبا', role: 'مبرمج فول ستاك ومصمم', art: 'dev01b' },
-  { id: 'planbot', agentName: 'plan bot', person: 'مشمش', role: 'تخطيط وتطوير', art: 'planbot' },
-  { id: 'dawrli', agentName: 'dawrli dev', person: 'بسكت', role: 'مبرمج تطبيقات', art: 'dawrli' },
-  { id: 'marketing', agentName: 'Marketing and Advertising', person: 'لولو', role: 'قسم التسويق', art: 'marketing' },
-  { id: 'messaging', agentName: 'المراسلات رفيور', person: 'جون', role: 'مطور ورفيور مراسلات', art: 'messaging' },
+  { id: 'dev', agentName: 'dev', person: 'سيمبا', role: 'مبرمج فول ستاك' },
+  { id: 'qa', agentName: 'QA', person: 'مشمش', role: 'فاحص جودة' },
+  { id: 'uiux', agentName: 'UIUX', person: 'لولو', role: 'تصميم واجهات' },
+  { id: 'pr-rev', agentName: 'PR-Rev', person: 'جون', role: 'مراجع طلبات الدمج' },
+  { id: 'search', agentName: 'search', person: 'بسكت', role: 'باحث' },
+  { id: 'support', agentName: 'الدعم الفني', person: 'زعتر', role: 'الدعم الفني' },
+  { id: 'db-sync', agentName: 'dev-database sync app project', person: 'كراميل', role: 'تطبيق مزامنة قاعدة البيانات' },
 ];
+
+// which illustrated character each agent id uses
+export const ID_ART = { dev: 'dev01b', qa: 'planbot', uiux: 'marketing', 'pr-rev': 'messaging', search: 'dawrli', support: 'generic1', 'db-sync': 'generic2' };
 
 // Illustrated characters shipped in public/art. Each key has 4 files:
 //   sit_<key>.webp (at the desk), idle_<key>.webp (standing with tea),
@@ -39,6 +44,7 @@ export function artPaths(art) {
 export const OWNER = { name: 'جاسم', art: { key: 'owner', idle: 'art/idle_owner.webp', walk4: 'art/walk4_owner.webp' } };
 
 export function defaultArt(id) {
+  if (ID_ART[id]) return ID_ART[id];
   if (ART_KEYS.includes(id)) return id;
   return GENERIC_ART[hashId(id) % GENERIC_ART.length];
 }
@@ -57,6 +63,14 @@ export function normalizeAgent(raw) {
 }
 
 export async function loadAgents() {
+  if (isLive()) {
+    try {
+      const data = await api('/agents');
+      return { url: `${CONFIG.apiBaseUrl}/api/agents`, agents: data.agents.map(normalizeAgent), source: 'api' };
+    } catch (e) {
+      console.info('agents from API not available, using agents.json', e.message);
+    }
+  }
   const url = new URLSearchParams(location.search).get('agents') || CONFIG.agentsUrl;
   try {
     const res = await fetch(`${url}?t=${Date.now()}`, { cache: 'no-store' });

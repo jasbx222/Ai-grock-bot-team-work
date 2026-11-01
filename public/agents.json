@@ -1,40 +1,54 @@
 {
- "_note": "قائمة الوكلاء (عائلة القطط). أضف وكيل جديد هنا ويطلع تلقائياً بالبيت (قطّة + مكتب + اسم + محادثة + حالة). art اختياري: إذا ما انكتب تنطى قطّة جاهزة ثابتة حسب الـ id (generic1 قطّة بيضاء / generic2 قطّ رمادي).",
- "agents": [
-  {
-   "id": "dev01b",
-   "agentName": "dev 01 b",
-   "person": "سيمبا",
-   "role": "مبرمج فول ستاك ومصمم",
-   "art": "dev01b"
-  },
-  {
-   "id": "planbot",
-   "agentName": "plan bot",
-   "person": "مشمش",
-   "role": "تخطيط وتطوير",
-   "art": "planbot"
-  },
-  {
-   "id": "dawrli",
-   "agentName": "dawrli dev",
-   "person": "بسكت",
-   "role": "مبرمج تطبيقات",
-   "art": "dawrli"
-  },
-  {
-   "id": "marketing",
-   "agentName": "Marketing and Advertising",
-   "person": "لولو",
-   "role": "قسم التسويق",
-   "art": "marketing"
-  },
-  {
-   "id": "messaging",
-   "agentName": "المراسلات رفيور",
-   "person": "جون",
-   "role": "مطور ورفيور مراسلات",
-   "art": "messaging"
-  }
- ]
+  "_note": "قائمة الوكلاء (عائلة القطط). أضف وكيل جديد هنا ويطلع تلقائياً بالبيت (قطّة + مكتب + اسم + محادثة + حالة). art اختياري: إذا ما انكتب تنطى قطّة جاهزة ثابتة حسب الـ id (generic1 قطّة بيضاء / generic2 قطّ رمادي).",
+  "agents": [
+    {
+      "id": "dev",
+      "agentName": "dev",
+      "person": "سيمبا",
+      "role": "مبرمج فول ستاك",
+      "art": "dev01b"
+    },
+    {
+      "id": "qa",
+      "agentName": "QA",
+      "person": "مشمش",
+      "role": "فاحص جودة",
+      "art": "planbot"
+    },
+    {
+      "id": "uiux",
+      "agentName": "UIUX",
+      "person": "لولو",
+      "role": "تصميم واجهات",
+      "art": "marketing"
+    },
+    {
+      "id": "pr-rev",
+      "agentName": "PR-Rev",
+      "person": "جون",
+      "role": "مراجع طلبات الدمج",
+      "art": "messaging"
+    },
+    {
+      "id": "search",
+      "agentName": "search",
+      "person": "بسكت",
+      "role": "باحث",
+      "art": "dawrli"
+    },
+    {
+      "id": "support",
+      "agentName": "الدعم الفني",
+      "person": "زعتر",
+      "role": "الدعم الفني",
+      "art": "generic1"
+    },
+    {
+      "id": "db-sync",
+      "agentName": "dev-database sync app project",
+      "person": "كراميل",
+      "role": "تطبيق مزامنة قاعدة البيانات",
+      "art": "generic2"
+    }
+  ]
 }
